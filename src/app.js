@@ -4,7 +4,7 @@ import * as State from './state.js';
 import { initMap, setLayerVisibility, focusZone, resetView, setOnDrill, destroyMap } from './map.js';
 import { renderIcons, icon } from './icons.js';
 import { toast } from './toast.js';
-import { openModal, closeModal } from './modal.js';
+import { openModal, closeModal, confirm } from './modal.js';
 import { startRealtime, subscribeRealtime, getStream, getStats, getTickRate } from './realtime.js';
 import { getCurrentUser, isLoggedIn, logout } from './auth.js';
 import { renderLogin } from './login.js';
@@ -772,12 +772,12 @@ function renderWorkOrders(root) {
         </div>
       </div>
       <div class="overflow-x-auto"><table class="data-table">
-        <thead><tr><th>ID</th><th>Title</th><th>Zone</th><th>Type</th><th>Priority</th><th>Status</th><th>Assignee</th><th>Due</th><th>Score</th><th>Est. recovery</th></tr></thead>
+        <thead><tr><th>ID</th><th>Title</th><th>Zone</th><th>Type</th><th>Priority</th><th>Status</th><th>Assignee</th><th>Due</th><th>Score</th><th>Est. recovery</th><th>Actions</th></tr></thead>
         <tbody>${filtered.map(w => {
           const zone = NRW.getZone(w.zoneId);
           const overdue = new Date(w.dueDate) < new Date('2026-06-02') && !['Verified', 'Closed'].includes(w.status);
-          return `<tr class="clickable" data-wo="${w.id}"><td><strong>${w.id}</strong></td><td>${w.title}</td><td>${zone?.name || w.zoneId}</td><td>${w.type}</td><td><span class="priority priority-${w.priority.toLowerCase()}">${w.priority}</span></td><td><span class="badge" style="background:${NRW.statusColor(w.status)}">${w.status}</span></td><td>${w.assignee || '<span class="text-slate-400">unassigned</span>'}</td><td class="${overdue ? 'text-red-500' : ''}">${NRW.formatDate(w.dueDate)} ${overdue ? icon('triangle-alert', 'w-3 h-3 inline') : ''}</td><td>${w.suspicionScore}</td><td>${w.estRecoveryM3 ? NRW.formatM3(w.estRecoveryM3) : '-'}</td></tr>`;
-        }).join('')}${!filtered.length ? '<tr><td colspan="10" class="text-center py-9 text-slate-400">No work orders match current filters</td></tr>' : ''}</tbody>
+          return `<tr class="clickable" data-wo="${w.id}"><td><strong>${w.id}</strong></td><td>${w.title}</td><td>${zone?.name || w.zoneId}</td><td>${w.type}</td><td><span class="priority priority-${w.priority.toLowerCase()}">${w.priority}</span></td><td><span class="badge" style="background:${NRW.statusColor(w.status)}">${w.status}</span></td><td>${w.assignee || '<span class="text-slate-400">unassigned</span>'}</td><td class="${overdue ? 'text-red-500' : ''}">${NRW.formatDate(w.dueDate)} ${overdue ? icon('triangle-alert', 'w-3 h-3 inline') : ''}</td><td>${w.suspicionScore}</td><td>${w.estRecoveryM3 ? NRW.formatM3(w.estRecoveryM3) : '-'}</td><td class="!py-1"><div class="flex gap-0.5"><button class="row-action" data-edit-wo="${w.id}" title="Edit">${icon('pencil', 'w-3 h-3')}</button><button class="row-action danger" data-delete-wo="${w.id}" title="Cancel">${icon('trash-2', 'w-3 h-3')}</button></div></td></tr>`;
+        }).join('')}${!filtered.length ? '<tr><td colspan="11" class="text-center py-9 text-slate-400">No work orders match current filters</td></tr>' : ''}</tbody>
       </table></div>
     </div>
   `;
@@ -794,12 +794,18 @@ function renderWorkOrders(root) {
   });
   document.getElementById('new-wo-btn').addEventListener('click', () => openCreateWOModal());
   root.querySelectorAll('[data-wo]').forEach(r => r.addEventListener('click', () => openWorkOrderDrawer(r.dataset.wo)));
+  root.querySelectorAll('[data-edit-wo]').forEach(b => b.addEventListener('click', e => { e.stopPropagation(); openEditWOModal(b.dataset.editWo); }));
+  root.querySelectorAll('[data-delete-wo]').forEach(b => b.addEventListener('click', e => { e.stopPropagation(); deleteWO(b.dataset.deleteWo); }));
   renderIcons();
 }
 
 // ============ ZONES ============
 function renderZones(root) {
   root.innerHTML = `
+    <div class="flex justify-between items-center">
+      <div class="flex gap-2 items-center"><span class="chip">${NRW.ZONES.length} zones</span><span class="chip chip-success">${NRW.ZONES.reduce((s, z) => s + z.customers, 0).toLocaleString()} customers</span></div>
+      <button class="btn-primary flex items-center gap-1.5" id="new-zone-btn">${icon('plus', 'w-3.5 h-3.5')} New Zone</button>
+    </div>
     <div class="grid grid-cols-[repeat(auto-fill,minmax(320px,1fr))] gap-3.5">
       ${NRW.ZONES.map(z => {
         const color = NRW.classificationColor(z.classification);
@@ -809,7 +815,11 @@ function renderZones(root) {
         return `<div class="zone-card clickable" data-zone="${z.id}">
           <div class="px-3.5 py-3 flex justify-between items-start gap-2.5 bg-slate-50 border-b border-slate-200" style="border-left:4px solid ${color}">
             <div><div class="font-semibold text-sm">${z.name}</div><div class="text-slate-400 text-[11px] mt-0.5">${z.id} · ${z.region} · ${z.type}</div></div>
-            <span class="badge" style="background:${color}">${z.classification}</span>
+            <div class="flex items-center gap-1">
+              <span class="badge" style="background:${color}">${z.classification}</span>
+              <button class="row-action" data-edit-zone="${z.id}" title="Edit">${icon('pencil', 'w-3 h-3')}</button>
+              <button class="row-action danger" data-delete-zone="${z.id}" title="Delete">${icon('trash-2', 'w-3 h-3')}</button>
+            </div>
           </div>
           <div class="grid grid-cols-2 p-3">
             <div class="p-2.5 border-r border-b border-slate-200"><div class="text-slate-400 text-[10px] uppercase tracking-wide">NRW</div><div class="text-[20px] font-bold mt-0.5">${z.nrwPercent}%</div><div class="text-[10px] mt-0.5 ${trendClass} flex items-center gap-1">${trendArrow(z.nrwTrend)} ${Math.abs(z.nrwChange)}%</div></div>
@@ -827,17 +837,26 @@ function renderZones(root) {
     </div>
   `;
   root.querySelectorAll('[data-zone]').forEach(c => c.addEventListener('click', () => openZoneDrawer(c.dataset.zone)));
+  root.querySelectorAll('[data-edit-zone]').forEach(b => b.addEventListener('click', e => { e.stopPropagation(); openZoneFormModal(NRW.getZone(b.dataset.editZone)); }));
+  root.querySelectorAll('[data-delete-zone]').forEach(b => b.addEventListener('click', e => { e.stopPropagation(); deleteZone(b.dataset.deleteZone); }));
+  document.getElementById('new-zone-btn').addEventListener('click', () => openZoneFormModal());
   renderIcons();
 }
 
 // ============ SENSORS ============
 function renderSensors(root) {
-  root.innerHTML = `<div class="card"><div class="card-header"><h3>Sensor Registry</h3><span class="chip">${NRW.SENSORS.length} sensors</span></div>
+  root.innerHTML = `<div class="card"><div class="card-header"><h3>Sensor Registry</h3>
+    <div class="flex gap-2 items-center"><span class="chip">${NRW.SENSORS.length} sensors</span>
+      <button class="btn-primary flex items-center gap-1.5" id="new-sensor-btn">${icon('plus', 'w-3.5 h-3.5')} New Sensor</button>
+    </div></div>
     <div class="overflow-x-auto"><table class="data-table">
-      <thead><tr><th>ID</th><th>Type</th><th>Zone</th><th>Location</th><th>Status</th><th>Last reading</th><th>Battery</th><th>Signal</th></tr></thead>
-      <tbody>${NRW.SENSORS.map(s => `<tr class="clickable" data-sensor="${s.id}"><td><strong>${s.id}</strong></td><td>${s.type}</td><td>${s.zoneName}</td><td>${s.location}</td><td><span class="badge" style="background:${s.status === 'online' ? '#10b981' : s.status === 'warning' ? '#f59e0b' : '#94a3b8'}">${s.status}</span></td><td>${s.lastReading} ${s.unit}</td><td>${batteryBar(s.battery)}</td><td>${signalBar(s.signalStrength)}</td></tr>`).join('')}</tbody>
+      <thead><tr><th>ID</th><th>Type</th><th>Zone</th><th>Location</th><th>Status</th><th>Last reading</th><th>Battery</th><th>Signal</th><th>Actions</th></tr></thead>
+      <tbody>${NRW.SENSORS.map(s => `<tr class="clickable" data-sensor="${s.id}"><td><strong>${s.id}</strong></td><td>${s.type}</td><td>${s.zoneName}</td><td>${s.location}</td><td><span class="badge" style="background:${s.status === 'online' ? '#10b981' : s.status === 'warning' ? '#f59e0b' : '#94a3b8'}">${s.status}</span></td><td><span data-live-sensor="${s.id}">${s.lastReading} ${s.unit}</span></td><td>${batteryBar(s.battery)}</td><td>${signalBar(s.signalStrength)}</td><td class="!py-1"><div class="flex gap-0.5"><button class="row-action" data-edit-sensor="${s.id}" title="Edit">${icon('pencil', 'w-3 h-3')}</button><button class="row-action danger" data-delete-sensor="${s.id}" title="Delete">${icon('trash-2', 'w-3 h-3')}</button></div></td></tr>`).join('')}</tbody>
     </table></div></div>`;
   root.querySelectorAll('[data-sensor]').forEach(r => r.addEventListener('click', () => openSensorDrawer(r.dataset.sensor)));
+  root.querySelectorAll('[data-edit-sensor]').forEach(b => b.addEventListener('click', e => { e.stopPropagation(); openSensorFormModal(NRW.getSensor(b.dataset.editSensor)); }));
+  root.querySelectorAll('[data-delete-sensor]').forEach(b => b.addEventListener('click', e => { e.stopPropagation(); deleteSensor(b.dataset.deleteSensor); }));
+  document.getElementById('new-sensor-btn').addEventListener('click', () => openSensorFormModal());
   renderIcons();
 }
 
@@ -900,10 +919,11 @@ function renderCustomers(root) {
         <div class="flex gap-2">
           <select class="select-input" id="cf-zone"><option value="all">All zones</option>${NRW.ZONES.map(z => `<option value="${z.id}">${z.name}</option>`).join('')}</select>
           <select class="select-input" id="cf-anom"><option value="all">All customers</option><option value="zero_consumption">Zero consumption</option><option value="sudden_drop">Sudden drop</option><option value="unusual_spike">Usage spike</option><option value="old_meter">Old meter</option></select>
+          <button class="btn-primary flex items-center gap-1.5" id="new-customer-btn">${icon('plus', 'w-3.5 h-3.5')} New Customer</button>
         </div>
       </div>
       <div class="overflow-x-auto"><table class="data-table">
-        <thead><tr><th>ID</th><th>Name</th><th>Type</th><th>Zone</th><th>Meter</th><th>Avg / Last</th><th>Last 6 mo</th><th>Anomalies</th><th>Risk</th></tr></thead>
+        <thead><tr><th>ID</th><th>Name</th><th>Type</th><th>Zone</th><th>Meter</th><th>Avg / Last</th><th>Last 6 mo</th><th>Anomalies</th><th>Risk</th><th>Actions</th></tr></thead>
         <tbody>${filtered.slice(0, 50).map(c => `
           <tr class="clickable" data-customer="${c.id}">
             <td><strong>${c.id}</strong></td>
@@ -915,6 +935,7 @@ function renderCustomers(root) {
             <td><div class="w-24 h-8"><canvas id="cspark-${c.id}"></canvas></div></td>
             <td>${c.anomalies.length ? c.anomalies.map(a => `<span class="badge" style="background:${a.severity === 'high' ? '#dc2626' : a.severity === 'medium' ? '#f59e0b' : '#94a3b8'}">${a.label}</span>`).join(' ') : '<span class="text-slate-400 text-[11px]">none</span>'}</td>
             <td>${c.riskScore}</td>
+            <td class="!py-1"><div class="flex gap-0.5"><button class="row-action" data-edit-customer="${c.id}" title="Edit">${icon('pencil', 'w-3 h-3')}</button><button class="row-action danger" data-delete-customer="${c.id}" title="Delete">${icon('trash-2', 'w-3 h-3')}</button></div></td>
           </tr>
         `).join('')}</tbody>
       </table></div>
@@ -927,6 +948,9 @@ function renderCustomers(root) {
   document.getElementById('cf-anom').addEventListener('change', e => { state.cust.anomaly = e.target.value; renderCustomers(root); });
   filtered.slice(0, 50).forEach(c => Charts.sparkline(`cspark-${c.id}`, c.history.slice(-6), c.anomalies.length ? '#ef4444' : '#0ea5e9'));
   root.querySelectorAll('[data-customer]').forEach(r => r.addEventListener('click', () => openCustomerDrawer(r.dataset.customer)));
+  root.querySelectorAll('[data-edit-customer]').forEach(b => b.addEventListener('click', e => { e.stopPropagation(); openCustomerFormModal(NRW.getCustomer(b.dataset.editCustomer)); }));
+  root.querySelectorAll('[data-delete-customer]').forEach(b => b.addEventListener('click', e => { e.stopPropagation(); deleteCustomer(b.dataset.deleteCustomer); }));
+  document.getElementById('new-customer-btn').addEventListener('click', () => openCustomerFormModal());
   renderIcons();
 }
 
@@ -1062,6 +1086,10 @@ function renderSchedule(root) {
 // ============ TEAMS ============
 function renderTeams(root) {
   root.innerHTML = `
+    <div class="flex justify-between items-center">
+      <div class="flex gap-2 items-center"><span class="chip">${NRW.TEAMS.length} teams</span><span class="chip">${NRW.TEAMS.reduce((s, t) => s + t.members, 0)} members total</span></div>
+      <button class="btn-primary flex items-center gap-1.5" id="new-team-btn">${icon('plus', 'w-3.5 h-3.5')} New Team</button>
+    </div>
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
       ${NRW.TEAMS.map(t => {
         const wos = NRW.WORK_ORDERS.filter(w => w.assignee === t.name && !['Closed', 'Verified'].includes(w.status));
@@ -1071,7 +1099,11 @@ function renderTeams(root) {
               <div class="w-10 h-10 rounded-full bg-sky-100 text-sky-600 grid place-items-center font-bold">${t.name.slice(-1)}</div>
               <div><h3>${t.name}</h3><div class="text-slate-400 text-[11px] mt-0.5">Lead: ${t.lead} · ${t.region}</div></div>
             </div>
-            <span class="chip ${t.status === 'active' ? 'chip-success' : ''}">${t.status}</span>
+            <div class="flex items-center gap-1.5">
+              <span class="chip ${t.status === 'active' ? 'chip-success' : ''}">${t.status}</span>
+              <button class="row-action" data-edit-team="${t.id}" title="Edit">${icon('pencil', 'w-3 h-3')}</button>
+              <button class="row-action danger" data-delete-team="${t.id}" title="Delete">${icon('trash-2', 'w-3 h-3')}</button>
+            </div>
           </div>
           <div class="p-4 grid grid-cols-3 gap-3">
             <div><div class="text-[10px] text-slate-400 uppercase">Members</div><div class="text-lg font-bold">${t.members}</div></div>
@@ -1090,6 +1122,9 @@ function renderTeams(root) {
     </div>
   `;
   root.querySelectorAll('[data-team]').forEach(c => c.addEventListener('click', () => openTeamDrawer(c.dataset.team)));
+  root.querySelectorAll('[data-edit-team]').forEach(b => b.addEventListener('click', e => { e.stopPropagation(); openTeamFormModal(NRW.TEAMS.find(t => t.id === b.dataset.editTeam)); }));
+  root.querySelectorAll('[data-delete-team]').forEach(b => b.addEventListener('click', e => { e.stopPropagation(); deleteTeam(b.dataset.deleteTeam); }));
+  document.getElementById('new-team-btn').addEventListener('click', () => openTeamFormModal());
   renderIcons();
 }
 
@@ -1110,7 +1145,7 @@ function renderHardware(root) {
       <div class="card">
         <div class="card-header">
           <div class="flex items-center gap-3"><h3>Live device grid</h3><span class="live-pill"><span class="live-dot"></span><span id="hw-tick-counter"><strong>${s.msgsPerMin}</strong>/min · avg latency <strong>${s.avgLatency}ms</strong></span></span></div>
-          <span class="chip">${NRW.DEVICES.length} devices</span>
+          <div class="flex items-center gap-2"><span class="chip">${NRW.DEVICES.length} devices</span><button class="btn-primary flex items-center gap-1.5" id="new-device-btn">${icon('plus', 'w-3.5 h-3.5')} New Device</button></div>
         </div>
         <div class="p-3 grid grid-cols-1 md:grid-cols-2 gap-2.5">
           ${NRW.DEVICES.map(d => deviceTile(d)).join('')}
@@ -1163,6 +1198,9 @@ function renderHardware(root) {
   `;
   root.querySelectorAll('[data-device]').forEach(r => r.addEventListener('click', () => openDeviceDrawer(r.dataset.device)));
   root.querySelectorAll('[data-ota]').forEach(b => b.addEventListener('click', e => { e.stopPropagation(); toast(`OTA push queued for ${b.dataset.ota} · v2.5.0`, 'info'); }));
+  root.querySelectorAll('[data-edit-device]').forEach(b => b.addEventListener('click', e => { e.stopPropagation(); openDeviceFormModal(NRW.getDevice(b.dataset.editDevice)); }));
+  root.querySelectorAll('[data-delete-device]').forEach(b => b.addEventListener('click', e => { e.stopPropagation(); deleteDevice(b.dataset.deleteDevice); }));
+  document.getElementById('new-device-btn')?.addEventListener('click', () => openDeviceFormModal());
   document.getElementById('hw-clear-stream')?.addEventListener('click', () => { document.getElementById('stream-console').innerHTML = '<div class="text-slate-500">Stream cleared. New messages will appear here…</div>'; });
   renderIcons();
 }
@@ -1177,7 +1215,11 @@ function deviceTile(d) {
           <div class="flex items-center gap-2"><span class="live-dot ${d.status !== 'online' ? (d.status === 'warning' ? 'warn' : 'bad') : ''}"></span><strong class="text-sm truncate">${d.id}</strong><span class="text-slate-400 text-[10px]">${d.firmware}</span></div>
           <div class="text-[11px] text-slate-500 mt-0.5 truncate">${d.location}</div>
         </div>
-        ${d.updateAvailable ? `<span class="chip chip-success text-[9px]">${icon('download', 'w-2.5 h-2.5')} OTA</span>` : ''}
+        <div class="flex items-center gap-1">
+          ${d.updateAvailable ? `<span class="chip chip-success text-[9px]">${icon('download', 'w-2.5 h-2.5')} OTA</span>` : ''}
+          <button class="row-action" data-edit-device="${d.id}" title="Edit">${icon('pencil', 'w-3 h-3')}</button>
+          <button class="row-action danger" data-delete-device="${d.id}" title="Delete">${icon('trash-2', 'w-3 h-3')}</button>
+        </div>
       </div>
       <div class="grid grid-cols-4 gap-1.5 text-center">
         <div class="bg-slate-50 rounded p-1.5"><div class="text-[9px] text-slate-400 uppercase">Signal</div><div class="text-xs font-semibold">${d.signal}%</div></div>
@@ -1280,10 +1322,13 @@ function openDeviceDrawer(deviceId) {
     </div>
     <div class="px-6 py-3.5 border-t border-slate-200 flex gap-2 justify-end">
       <button class="btn-secondary" data-close>Close</button>
-      <button class="btn-secondary flex items-center gap-1.5">${icon('settings', 'w-3.5 h-3.5')} Configure</button>
+      <button class="btn-secondary flex items-center gap-1.5" id="dev-edit">${icon('pencil', 'w-3.5 h-3.5')} Edit</button>
+      <button class="btn-danger flex items-center gap-1.5" id="dev-delete">${icon('trash-2', 'w-3.5 h-3.5')} Delete</button>
       <button class="btn-primary flex items-center gap-1.5">${icon('refresh-cw', 'w-3.5 h-3.5')} Restart device</button>
     </div>
   `, { kind: 'device', id: deviceId });
+  document.getElementById('dev-edit').addEventListener('click', () => openDeviceFormModal(d));
+  document.getElementById('dev-delete').addEventListener('click', () => deleteDevice(deviceId));
 
   document.querySelectorAll('#drawer [data-sensor]').forEach(r => r.addEventListener('click', () => openSensorDrawer(r.dataset.sensor)));
   document.getElementById('dev-push-ota')?.addEventListener('click', () => { d.otaStatus = 'queued'; toast(`OTA v2.5.0 queued for ${d.id}`, 'success'); openDeviceDrawer(deviceId); });
@@ -1369,9 +1414,13 @@ function openZoneDrawer(zoneId) {
     </div>
     <div class="px-6 py-3.5 border-t border-slate-200 flex gap-2 justify-end">
       <button class="btn-secondary" data-close>Close</button>
+      <button class="btn-secondary flex items-center gap-1.5" id="zone-edit">${icon('pencil', 'w-3.5 h-3.5')} Edit</button>
+      <button class="btn-danger flex items-center gap-1.5" id="zone-delete">${icon('trash-2', 'w-3.5 h-3.5')} Delete</button>
       <button class="btn-primary flex items-center gap-1.5" id="zone-create-wo">${icon('plus', 'w-3.5 h-3.5')} Create Work Order</button>
     </div>
   `, { kind: 'zone', id: zoneId });
+  document.getElementById('zone-edit')?.addEventListener('click', () => openZoneFormModal(z));
+  document.getElementById('zone-delete')?.addEventListener('click', () => deleteZone(zoneId));
   Charts.suspicionFactors('drawer-suspicion', NRW.suspicionBreakdown(z));
   Charts.mnfTrend('drawer-mnf', zoneId);
   Charts.flowProfile('drawer-flow', zoneId);
@@ -1435,9 +1484,13 @@ function openWorkOrderDrawer(woId) {
     </div>
     <div class="px-6 py-3.5 border-t border-slate-200 flex gap-2 justify-end">
       <button class="btn-secondary" data-close>Close</button>
+      <button class="btn-secondary flex items-center gap-1.5" id="wo-edit">${icon('pencil', 'w-3.5 h-3.5')} Edit</button>
+      <button class="btn-danger flex items-center gap-1.5" id="wo-delete">${icon('trash-2', 'w-3.5 h-3.5')} Cancel WO</button>
       ${zone ? `<button class="btn-secondary flex items-center gap-1.5" data-zone="${zone.id}">${icon('hexagon', 'w-3.5 h-3.5')} Open zone</button>` : ''}
     </div>
   `, { kind: 'wo', id: woId });
+  document.getElementById('wo-edit')?.addEventListener('click', () => openEditWOModal(woId));
+  document.getElementById('wo-delete')?.addEventListener('click', () => deleteWO(woId));
 
   document.querySelectorAll('#drawer [data-zone]').forEach(b => b.addEventListener('click', () => openZoneDrawer(b.dataset.zone)));
   document.querySelectorAll('#drawer [data-intervention]').forEach(b => b.addEventListener('click', () => openInterventionDrawer(b.dataset.intervention)));
@@ -1484,10 +1537,13 @@ function openSensorDrawer(sensorId) {
     </div>
     <div class="px-6 py-3.5 border-t border-slate-200 flex gap-2 justify-end">
       <button class="btn-secondary" data-close>Close</button>
-      <button class="btn-secondary">Run diagnostic</button>
+      <button class="btn-secondary flex items-center gap-1.5" id="snr-edit">${icon('pencil', 'w-3.5 h-3.5')} Edit</button>
+      <button class="btn-danger flex items-center gap-1.5" id="snr-delete">${icon('trash-2', 'w-3.5 h-3.5')} Delete</button>
       <button class="btn-primary" id="snr-create-wo">Schedule maintenance</button>
     </div>
   `, { kind: 'sensor', id: sensorId });
+  document.getElementById('snr-edit')?.addEventListener('click', () => openSensorFormModal(s));
+  document.getElementById('snr-delete')?.addEventListener('click', () => deleteSensor(sensorId));
 
   const ds = s.type === 'flow'
     ? { label: 'Flow (L/s)', data: ts.flow.map(p => p.v), color: '#0ea5e9' }
@@ -1561,8 +1617,15 @@ function openCustomerDrawer(customerId) {
         ${c.anomalies.length ? `<div class="timeline-item"><div class="timeline-dot" style="background:#dc2626;box-shadow:0 0 0 2px #dc2626"></div><div><div class="flex justify-between gap-3"><strong>Anomaly detected</strong><span class="text-slate-400 text-[11px]">${NRW.formatDate(c.lastReadingDate)}</span></div><div class="text-slate-500 text-xs mt-1">${c.anomalies.map(a => a.label).join('; ')}</div></div></div>` : ''}
       </div></div>
     </div>
-    <div class="px-6 py-3.5 border-t border-slate-200 flex gap-2 justify-end"><button class="btn-secondary" data-close>Close</button>${c.anomalies.length ? `<button class="btn-primary flex items-center gap-1.5" id="cust-create-wo">${icon('plus', 'w-3.5 h-3.5')} Create audit WO</button>` : ''}</div>
+    <div class="px-6 py-3.5 border-t border-slate-200 flex gap-2 justify-end">
+      <button class="btn-secondary" data-close>Close</button>
+      <button class="btn-secondary flex items-center gap-1.5" id="cust-edit">${icon('pencil', 'w-3.5 h-3.5')} Edit</button>
+      <button class="btn-danger flex items-center gap-1.5" id="cust-delete">${icon('trash-2', 'w-3.5 h-3.5')} Delete</button>
+      ${c.anomalies.length ? `<button class="btn-primary flex items-center gap-1.5" id="cust-create-wo">${icon('plus', 'w-3.5 h-3.5')} Create audit WO</button>` : ''}
+    </div>
   `, { kind: 'customer', id: customerId });
+  document.getElementById('cust-edit')?.addEventListener('click', () => openCustomerFormModal(c));
+  document.getElementById('cust-delete')?.addEventListener('click', () => deleteCustomer(customerId));
   Charts.customerConsumption('drawer-cust-consumption', c.history);
   document.getElementById('cust-create-wo')?.addEventListener('click', () => {
     openCreateWOModal({ zoneId: c.zoneId, type: 'Commercial', priority: 'Medium', title: `Customer audit — ${c.name}`, description: `Verify consumption pattern and meter condition for ${c.name} (${c.id}). Flags: ${c.anomalies.map(a => a.label).join(', ')}.` });
@@ -1590,8 +1653,15 @@ function openTeamDrawer(teamId) {
       <div><h4 class="mb-2.5">Active work orders (${open.length})</h4>${open.length ? `<table class="data-table compact"><thead><tr><th>ID</th><th>Title</th><th>Due</th><th>Status</th></tr></thead><tbody>${open.map(w => `<tr class="clickable" data-wo="${w.id}"><td><strong>${w.id}</strong></td><td>${w.title}</td><td>${NRW.formatDate(w.dueDate)}</td><td><span class="badge" style="background:${NRW.statusColor(w.status)}">${w.status}</span></td></tr>`).join('')}</tbody></table>` : '<div class="text-slate-400 text-xs">No active work orders</div>'}</div>
       ${completed.length ? `<div><h4 class="mb-2.5">Recently closed (${completed.length})</h4><table class="data-table compact"><thead><tr><th>ID</th><th>Title</th><th>Closed</th><th>Status</th></tr></thead><tbody>${completed.slice(0, 5).map(w => `<tr class="clickable" data-wo="${w.id}"><td><strong>${w.id}</strong></td><td>${w.title}</td><td>${NRW.formatDate(w.closedAt || w.dueDate)}</td><td><span class="badge" style="background:${NRW.statusColor(w.status)}">${w.status}</span></td></tr>`).join('')}</tbody></table></div>` : ''}
     </div>
-    <div class="px-6 py-3.5 border-t border-slate-200 flex gap-2 justify-end"><button class="btn-secondary" data-close>Close</button><button class="btn-primary flex items-center gap-1.5" id="team-assign">${icon('plus', 'w-3.5 h-3.5')} Assign new WO</button></div>
+    <div class="px-6 py-3.5 border-t border-slate-200 flex gap-2 justify-end">
+      <button class="btn-secondary" data-close>Close</button>
+      <button class="btn-secondary flex items-center gap-1.5" id="team-edit">${icon('pencil', 'w-3.5 h-3.5')} Edit</button>
+      <button class="btn-danger flex items-center gap-1.5" id="team-delete">${icon('trash-2', 'w-3.5 h-3.5')} Delete</button>
+      <button class="btn-primary flex items-center gap-1.5" id="team-assign">${icon('plus', 'w-3.5 h-3.5')} Assign new WO</button>
+    </div>
   `, { kind: 'team', id: teamId });
+  document.getElementById('team-edit').addEventListener('click', () => openTeamFormModal(t));
+  document.getElementById('team-delete').addEventListener('click', () => deleteTeam(teamId));
   document.querySelectorAll('#drawer [data-wo]').forEach(b => b.addEventListener('click', () => openWorkOrderDrawer(b.dataset.wo)));
   document.getElementById('team-assign').addEventListener('click', () => openCreateWOModal({ assignee: t.name }));
 }
@@ -1766,6 +1836,303 @@ function notifOutsideClick(e) {
 function closeNotifPanel() {
   document.getElementById('notif-panel')?.classList.remove('open');
   document.removeEventListener('click', notifOutsideClick);
+}
+
+// ============ CRUD MODALS & ACTIONS ============
+function field(label, name, value = '', opts = {}) {
+  const { type = 'text', required = false, placeholder = '', rows } = opts;
+  if (rows) return `<div><label class="text-[11px] text-slate-500 uppercase tracking-wide font-semibold">${label}${required ? ' *' : ''}</label><textarea name="${name}" rows="${rows}" ${required ? 'required' : ''} class="select-input w-full mt-1" placeholder="${placeholder}">${value}</textarea></div>`;
+  return `<div><label class="text-[11px] text-slate-500 uppercase tracking-wide font-semibold">${label}${required ? ' *' : ''}</label><input type="${type}" name="${name}" value="${value}" ${required ? 'required' : ''} class="select-input w-full mt-1" placeholder="${placeholder}" /></div>`;
+}
+
+function selectField(label, name, options, value = '', opts = {}) {
+  const { required = false } = opts;
+  return `<div><label class="text-[11px] text-slate-500 uppercase tracking-wide font-semibold">${label}${required ? ' *' : ''}</label><select name="${name}" ${required ? 'required' : ''} class="select-input w-full mt-1">${options.map(o => { const v = typeof o === 'string' ? o : o.value; const l = typeof o === 'string' ? o : o.label; return `<option value="${v}" ${value === v ? 'selected' : ''}>${l}</option>`; }).join('')}</select></div>`;
+}
+
+// --- ZONE ---
+function openZoneFormModal(zone = null) {
+  const isEdit = !!zone;
+  openModal({
+    title: isEdit ? `Edit zone · ${zone.id}` : 'Create new zone',
+    subtitle: isEdit ? 'Update zone master data' : 'Add a new DMA or pressure zone to the network',
+    size: 'md',
+    body: `<form id="zone-form" class="flex flex-col gap-3">
+      ${field('Zone name', 'name', zone?.name || '', { required: true, placeholder: 'e.g. Menteng North' })}
+      <div class="grid grid-cols-2 gap-3">
+        ${selectField('Region', 'region', ['Jakarta Pusat', 'Jakarta Selatan', 'Jakarta Barat', 'Jakarta Timur', 'Jakarta Utara'], zone?.region || 'Jakarta Pusat', { required: true })}
+        ${selectField('Type', 'type', ['DMA', 'Pressure Zone', 'Branch Zone'], zone?.type || 'DMA', { required: true })}
+      </div>
+      <div class="grid grid-cols-3 gap-3">
+        ${field('Customers', 'customers', zone?.customers ?? 0, { type: 'number' })}
+        ${field('Input volume (m³/mo)', 'inputVolume', zone?.inputVolume ?? 30000, { type: 'number', required: true })}
+        ${field('Billed volume (m³/mo)', 'billedVolume', zone?.billedVolume ?? 22500, { type: 'number', required: true })}
+      </div>
+      <div class="grid grid-cols-2 gap-3">
+        ${field('Avg pressure (bar)', 'avgPressure', zone?.avgPressure ?? 2.8, { type: 'number' })}
+        ${field('Baseline MNF (L/s)', 'baselineMNF', zone?.baselineMNF ?? 2.5, { type: 'number' })}
+      </div>
+    </form>`,
+    footer: `<button class="btn-secondary" data-modal-close>Cancel</button><button class="btn-primary" data-action="submit">${isEdit ? 'Save changes' : 'Create zone'}</button>`,
+    onAction: (action, overlay) => {
+      if (action !== 'submit') return;
+      const data = Object.fromEntries(new FormData(overlay.querySelector('#zone-form')).entries());
+      data.customers = Number(data.customers);
+      data.inputVolume = Number(data.inputVolume);
+      data.billedVolume = Number(data.billedVolume);
+      data.avgPressure = Number(data.avgPressure);
+      data.baselineMNF = Number(data.baselineMNF);
+      if (!data.name || !data.inputVolume) { toast('Name and input volume are required', 'error'); return false; }
+      if (isEdit) { State.updateZone(zone.id, data); toast(`Zone ${zone.id} updated`, 'success'); }
+      else { const z = State.createZone(data); toast(`Zone ${z.id} created`, 'success'); }
+      rerender();
+      return true;
+    }
+  });
+}
+
+function deleteZone(id) {
+  const z = NRW.getZone(id);
+  if (!z) return;
+  confirm({
+    title: 'Delete zone?',
+    message: `<strong>${z.name}</strong> (${z.id}) and its ${z.customers.toLocaleString()} customers and ${z.sensors} sensors will lose their zone association. This cannot be undone.`,
+    confirmLabel: 'Delete zone',
+    onConfirm: () => { State.deleteZone(id); toast(`Zone ${id} deleted`, 'success'); closeDrawer(); rerender(); }
+  });
+}
+
+// --- SENSOR ---
+function openSensorFormModal(sensor = null, prefill = {}) {
+  const isEdit = !!sensor;
+  openModal({
+    title: isEdit ? `Edit sensor · ${sensor.id}` : 'Register new sensor',
+    subtitle: isEdit ? 'Update sensor configuration' : 'Add a new flow, pressure, or acoustic sensor',
+    size: 'md',
+    body: `<form id="sensor-form" class="flex flex-col gap-3">
+      <div class="grid grid-cols-2 gap-3">
+        ${selectField('Type', 'type', [{ value: 'flow', label: 'Flow turbine' }, { value: 'pressure', label: 'Pressure transducer' }, { value: 'acoustic', label: 'Acoustic' }], sensor?.type || prefill.type || 'flow', { required: true })}
+        ${selectField('Zone', 'zoneId', NRW.ZONES.map(z => ({ value: z.id, label: `${z.name} (${z.id})` })), sensor?.zoneId || prefill.zoneId || '', { required: true })}
+      </div>
+      ${field('Location label', 'location', sensor?.location || prefill.location || '', { required: true, placeholder: 'e.g. Inlet Main, Junction B' })}
+      <div class="grid grid-cols-3 gap-3">
+        ${selectField('Status', 'status', ['online', 'warning', 'offline'], sensor?.status || 'online')}
+        ${field('Battery %', 'battery', sensor?.battery ?? 95, { type: 'number' })}
+        ${field('Signal %', 'signalStrength', sensor?.signalStrength ?? 90, { type: 'number' })}
+      </div>
+    </form>`,
+    footer: `<button class="btn-secondary" data-modal-close>Cancel</button><button class="btn-primary" data-action="submit">${isEdit ? 'Save changes' : 'Register sensor'}</button>`,
+    onAction: (action, overlay) => {
+      if (action !== 'submit') return;
+      const data = Object.fromEntries(new FormData(overlay.querySelector('#sensor-form')).entries());
+      if (!data.type || !data.zoneId || !data.location) { toast('Type, zone, and location are required', 'error'); return false; }
+      if (isEdit) { State.updateSensor(sensor.id, data); toast(`Sensor ${sensor.id} updated`, 'success'); }
+      else { const s = State.createSensor(data); toast(`Sensor ${s.id} registered`, 'success'); }
+      rerender();
+      return true;
+    }
+  });
+}
+
+function deleteSensor(id) {
+  const s = NRW.getSensor(id);
+  if (!s) return;
+  confirm({
+    title: 'Delete sensor?',
+    message: `Sensor <strong>${s.id}</strong> (${s.type} at ${s.location}, ${s.zoneName}) will be removed from the registry and its device association.`,
+    confirmLabel: 'Delete sensor',
+    onConfirm: () => { State.deleteSensor(id); toast(`Sensor ${id} deleted`, 'success'); closeDrawer(); rerender(); }
+  });
+}
+
+// --- DEVICE ---
+function openDeviceFormModal(device = null) {
+  const isEdit = !!device;
+  const modelOpts = [
+    { value: 'outdoor_4g', label: 'Outdoor RIO · 4G LTE · Solar' },
+    { value: 'outdoor_grid', label: 'Outdoor RIO · 4G LTE · Grid AC' },
+    { value: 'indoor_wifi', label: 'Indoor RIO · WiFi · Modbus' },
+    { value: 'indoor_eth', label: 'Indoor RIO · Ethernet · Modbus' }
+  ];
+  openModal({
+    title: isEdit ? `Edit device · ${device.id}` : 'Register new telemetric device',
+    subtitle: isEdit ? 'Update device configuration' : 'Add a new RIO unit to the network',
+    size: 'md',
+    body: `<form id="device-form" class="flex flex-col gap-3">
+      ${field('Device name', 'name', device?.name || '', { placeholder: 'e.g. DMA-001 RIO' })}
+      <div class="grid grid-cols-2 gap-3">
+        ${selectField('Model', 'modelKey', modelOpts, device?.modelKey || 'outdoor_4g', { required: true })}
+        ${selectField('Zone', 'zoneId', NRW.ZONES.map(z => ({ value: z.id, label: `${z.name} (${z.id})` })), device?.zoneId || '', { required: true })}
+      </div>
+      ${field('Location', 'location', device?.location || '', { required: true, placeholder: 'e.g. DMA Boundary · Inlet Main' })}
+      <div class="grid grid-cols-2 gap-3">
+        ${field('IP address', 'ipAddress', device?.ipAddress || '', { placeholder: '10.42.1.100' })}
+        ${field('Firmware', 'firmware', device?.firmware || 'v2.5.0')}
+      </div>
+      ${selectField('Status', 'status', ['online', 'warning', 'offline'], device?.status || 'online')}
+    </form>`,
+    footer: `<button class="btn-secondary" data-modal-close>Cancel</button><button class="btn-primary" data-action="submit">${isEdit ? 'Save changes' : 'Register device'}</button>`,
+    onAction: (action, overlay) => {
+      if (action !== 'submit') return;
+      const data = Object.fromEntries(new FormData(overlay.querySelector('#device-form')).entries());
+      if (!data.modelKey || !data.zoneId || !data.location) { toast('Model, zone, and location are required', 'error'); return false; }
+      if (isEdit) { State.updateDevice(device.id, data); toast(`Device ${device.id} updated`, 'success'); }
+      else { const d = State.createDevice(data); toast(`Device ${d.id} registered`, 'success'); }
+      rerender();
+      return true;
+    }
+  });
+}
+
+function deleteDevice(id) {
+  const d = NRW.getDevice(id);
+  if (!d) return;
+  confirm({
+    title: 'Delete device?',
+    message: `Device <strong>${d.id}</strong> (${d.model}, ${d.location}) will be removed. Its ${d.sensorIds.length} connected sensors will become orphaned.`,
+    confirmLabel: 'Delete device',
+    onConfirm: () => { State.deleteDevice(id); toast(`Device ${id} deleted`, 'success'); closeDrawer(); rerender(); }
+  });
+}
+
+// --- CUSTOMER ---
+function openCustomerFormModal(customer = null) {
+  const isEdit = !!customer;
+  openModal({
+    title: isEdit ? `Edit customer · ${customer.id}` : 'Add new customer',
+    subtitle: isEdit ? 'Update customer master record' : 'Register a new water service customer',
+    size: 'md',
+    body: `<form id="customer-form" class="flex flex-col gap-3">
+      ${field('Customer name', 'name', customer?.name || '', { required: true, placeholder: 'e.g. Wijaya Hartono' })}
+      <div class="grid grid-cols-2 gap-3">
+        ${selectField('Type', 'type', ['Residential', 'Business'], customer?.type || 'Residential', { required: true })}
+        ${selectField('Zone', 'zoneId', NRW.ZONES.map(z => ({ value: z.id, label: `${z.name} (${z.id})` })), customer?.zoneId || '', { required: true })}
+      </div>
+      <div class="grid grid-cols-2 gap-3">
+        ${field('Meter ID', 'meterId', customer?.meterId || '', { placeholder: 'e.g. MTR-001234' })}
+        ${field('Meter age (years)', 'meterAge', customer?.meterAge ?? 1, { type: 'number' })}
+      </div>
+    </form>`,
+    footer: `<button class="btn-secondary" data-modal-close>Cancel</button><button class="btn-primary" data-action="submit">${isEdit ? 'Save changes' : 'Add customer'}</button>`,
+    onAction: (action, overlay) => {
+      if (action !== 'submit') return;
+      const data = Object.fromEntries(new FormData(overlay.querySelector('#customer-form')).entries());
+      if (!data.name || !data.zoneId) { toast('Name and zone are required', 'error'); return false; }
+      if (isEdit) { State.updateCustomer(customer.id, data); toast(`Customer ${customer.id} updated`, 'success'); }
+      else { const c = State.createCustomer(data); toast(`Customer ${c.id} added`, 'success'); }
+      rerender();
+      return true;
+    }
+  });
+}
+
+function deleteCustomer(id) {
+  const c = NRW.getCustomer(id);
+  if (!c) return;
+  confirm({
+    title: 'Delete customer?',
+    message: `Customer <strong>${c.name}</strong> (${c.id}) will be removed from the master. Their billing history will be retained in the audit log.`,
+    confirmLabel: 'Delete customer',
+    onConfirm: () => { State.deleteCustomer(id); toast(`Customer ${id} deleted`, 'success'); closeDrawer(); rerender(); }
+  });
+}
+
+// --- TEAM ---
+function openTeamFormModal(team = null) {
+  const isEdit = !!team;
+  openModal({
+    title: isEdit ? `Edit team · ${team.id}` : 'Create new field team',
+    subtitle: isEdit ? 'Update team profile and specialties' : 'Set up a new inspection or maintenance team',
+    size: 'md',
+    body: `<form id="team-form" class="flex flex-col gap-3">
+      ${field('Team name', 'name', team?.name || '', { required: true, placeholder: 'e.g. Field Team Echo' })}
+      <div class="grid grid-cols-2 gap-3">
+        ${field('Team lead', 'lead', team?.lead || '', { required: true, placeholder: 'e.g. Pak Joko' })}
+        ${field('Members', 'members', team?.members ?? 3, { type: 'number' })}
+      </div>
+      ${selectField('Region', 'region', ['Jakarta Pusat', 'Jakarta Selatan', 'Jakarta Barat', 'Jakarta Timur', 'Jakarta Utara'], team?.region || 'Jakarta Pusat')}
+      ${field('Specialties (comma-separated)', 'specialties', (team?.specialties || []).join(', '), { placeholder: 'Leak detection, Burst repair' })}
+      ${selectField('Status', 'status', ['active', 'on-leave', 'training'], team?.status || 'active')}
+    </form>`,
+    footer: `<button class="btn-secondary" data-modal-close>Cancel</button><button class="btn-primary" data-action="submit">${isEdit ? 'Save changes' : 'Create team'}</button>`,
+    onAction: (action, overlay) => {
+      if (action !== 'submit') return;
+      const data = Object.fromEntries(new FormData(overlay.querySelector('#team-form')).entries());
+      if (!data.name || !data.lead) { toast('Name and lead are required', 'error'); return false; }
+      if (isEdit) { State.updateTeam(team.id, data); toast(`Team ${team.id} updated`, 'success'); }
+      else { const t = State.createTeam(data); toast(`Team ${t.name} created`, 'success'); }
+      rerender();
+      return true;
+    }
+  });
+}
+
+function deleteTeam(id) {
+  const t = NRW.TEAMS.find(x => x.id === id);
+  if (!t) return;
+  confirm({
+    title: 'Delete team?',
+    message: `Team <strong>${t.name}</strong> (${t.id}) will be deleted. Any work orders currently assigned to this team will keep the assignee name but the team profile will be gone.`,
+    confirmLabel: 'Delete team',
+    onConfirm: () => { State.deleteTeam(id); toast(`Team ${id} deleted`, 'success'); closeDrawer(); rerender(); }
+  });
+}
+
+// --- WORK ORDER edit/delete ---
+function openEditWOModal(woId) {
+  const w = NRW.getWorkOrder(woId);
+  if (!w) return;
+  openModal({
+    title: `Edit work order · ${w.id}`,
+    subtitle: 'Update work order fields',
+    size: 'md',
+    body: `<form id="ewo-form" class="flex flex-col gap-3">
+      ${field('Title', 'title', w.title, { required: true })}
+      <div class="grid grid-cols-2 gap-3">
+        ${selectField('Zone', 'zoneId', NRW.ZONES.map(z => ({ value: z.id, label: `${z.name} (${z.id})` })), w.zoneId, { required: true })}
+        ${selectField('Type', 'type', ['Inspection', 'Commercial', 'Maintenance', 'Verification'], w.type, { required: true })}
+      </div>
+      <div class="grid grid-cols-3 gap-3">
+        ${selectField('Priority', 'priority', ['Low', 'Medium', 'High', 'Critical'], w.priority, { required: true })}
+        ${selectField('Assignee', 'assignee', [{ value: '', label: '— unassigned —' }, ...NRW.TEAMS.map(t => ({ value: t.name, label: t.name }))], w.assignee || '')}
+        ${field('Due date', 'dueDate', w.dueDate, { type: 'date', required: true })}
+      </div>
+      ${field('Est. recovery (m³)', 'estRecoveryM3', w.estRecoveryM3 ?? 0, { type: 'number' })}
+      ${field('Description', 'description', w.description, { rows: 3 })}
+    </form>`,
+    footer: `<button class="btn-secondary" data-modal-close>Cancel</button><button class="btn-primary" data-action="submit">Save changes</button>`,
+    onAction: (action, overlay) => {
+      if (action !== 'submit') return;
+      const data = Object.fromEntries(new FormData(overlay.querySelector('#ewo-form')).entries());
+      State.updateWorkOrder(w.id, data);
+      toast(`Work order ${w.id} updated`, 'success');
+      rerender();
+      return true;
+    }
+  });
+}
+
+function deleteWO(id) {
+  const w = NRW.getWorkOrder(id);
+  if (!w) return;
+  confirm({
+    title: 'Cancel work order?',
+    message: `<strong>${w.title}</strong> (${w.id}) will be removed from the queue. This is logged in the activity feed.`,
+    confirmLabel: 'Cancel WO',
+    onConfirm: () => { State.deleteWorkOrder(id); toast(`Work order ${id} cancelled`, 'success'); closeDrawer(); rerender(); }
+  });
+}
+
+function rowActions(editHandler, deleteHandler) {
+  return `<div class="flex gap-0.5">
+    <button class="row-action" data-row-edit title="Edit">${icon('pencil', 'w-3 h-3')}</button>
+    <button class="row-action danger" data-row-delete title="Delete">${icon('trash-2', 'w-3 h-3')}</button>
+  </div>`;
+}
+
+function wireRowActions(row, editHandler, deleteHandler) {
+  row.querySelector('[data-row-edit]')?.addEventListener('click', e => { e.stopPropagation(); editHandler(); });
+  row.querySelector('[data-row-delete]')?.addEventListener('click', e => { e.stopPropagation(); deleteHandler(); });
 }
 
 // ============ COMMAND PALETTE ============

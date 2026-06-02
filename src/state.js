@@ -1,5 +1,6 @@
 import {
   WORK_ORDERS, ALARMS, INTERVENTIONS, CUSTOMERS, NOTIFICATIONS, ACTIVITY_FEED,
+  ZONES, SENSORS, DEVICES, TEAMS, JAKARTA_CENTER,
   formatDateTime
 } from './data.js';
 
@@ -175,4 +176,298 @@ export function toggleStar(id) {
   persist({ starred });
   emit('starredChanged', starred);
   return starred.includes(id);
+}
+
+// ============ CRUD: ZONES ============
+function nextZoneId() {
+  const max = ZONES.reduce((m, z) => Math.max(m, parseInt(z.id.slice(-3), 10) || 0), 0);
+  return `DMA-${String(max + 1).padStart(3, '0')}`;
+}
+
+function buildPolygon(center, sizeKm = 1) {
+  const dLng = (sizeKm / 111) * 0.6;
+  const dLat = (sizeKm / 111) * 0.5;
+  const [lng, lat] = center;
+  const bbox = [lng - dLng, lat - dLat, lng + dLng, lat + dLat];
+  const [w, s, e, n] = bbox;
+  const polygon = [[[w, s], [e, s], [e, n], [w, n], [w, s]]];
+  return { bbox, polygon };
+}
+
+export function createZone(data) {
+  const id = nextZoneId();
+  const center = data.center || [JAKARTA_CENTER[0] + (Math.random() - 0.5) * 0.04, JAKARTA_CENTER[1] + (Math.random() - 0.5) * 0.04];
+  const { bbox, polygon } = buildPolygon(center, 1.2);
+  const input = Number(data.inputVolume) || 30000;
+  const billed = Number(data.billedVolume) || Math.round(input * (1 - Number(data.nrwPercent || 25) / 100));
+  const nrwPercent = +(((input - billed) / input) * 100).toFixed(1);
+  const classification = nrwPercent > 35 ? 'Critical' : nrwPercent > 25 ? 'High' : nrwPercent > 20 ? 'Medium' : 'Low';
+  const zone = {
+    id, name: data.name, region: data.region || 'Jakarta Pusat', type: data.type || 'DMA',
+    customers: Number(data.customers) || 0, sensors: 0,
+    inputVolume: input, billedVolume: billed, nrwPercent,
+    nrwTrend: 'stable', nrwChange: 0, suspicionScore: 30, classification,
+    center, bbox, polygon,
+    minNightFlow: +(input / 30 / 24 / 3.6 * 0.15).toFixed(2),
+    baselineMNF: +(input / 30 / 24 / 3.6 * 0.12).toFixed(2),
+    avgPressure: 2.8, pressureStability: 0.85,
+    activeAlarms: 0, openWorkOrders: 0,
+    lastIntervention: '2026-01-01', estRevenue: billed * 5000
+  };
+  ZONES.unshift(zone);
+  emit('zoneCreated', zone);
+  return zone;
+}
+
+export function updateZone(id, data) {
+  const z = ZONES.find(x => x.id === id);
+  if (!z) return null;
+  Object.assign(z, data);
+  if (data.inputVolume || data.billedVolume) {
+    z.nrwPercent = +(((z.inputVolume - z.billedVolume) / z.inputVolume) * 100).toFixed(1);
+    z.classification = z.nrwPercent > 35 ? 'Critical' : z.nrwPercent > 25 ? 'High' : z.nrwPercent > 20 ? 'Medium' : 'Low';
+  }
+  emit('zoneUpdated', z);
+  return z;
+}
+
+export function deleteZone(id) {
+  const i = ZONES.findIndex(x => x.id === id);
+  if (i < 0) return false;
+  ZONES.splice(i, 1);
+  emit('zoneDeleted', id);
+  return true;
+}
+
+// ============ CRUD: SENSORS ============
+function nextSensorId() {
+  const max = SENSORS.reduce((m, s) => Math.max(m, parseInt(s.id.slice(-4), 10) || 0), 0);
+  return `SNR-${String(max + 1).padStart(4, '0')}`;
+}
+
+export function createSensor(data) {
+  const zone = ZONES.find(z => z.id === data.zoneId);
+  if (!zone) return null;
+  const id = nextSensorId();
+  const type = data.type || 'flow';
+  const sensor = {
+    id, type, zoneId: zone.id, zoneName: zone.name,
+    location: data.location || 'Custom point',
+    coordinates: [zone.center[0] + (Math.random() - 0.5) * 0.01, zone.center[1] + (Math.random() - 0.5) * 0.008],
+    status: data.status || 'online',
+    battery: Number(data.battery) || 95,
+    signalStrength: Number(data.signalStrength) || 90,
+    lastReading: type === 'flow' ? 10 : type === 'pressure' ? 2.5 : 40,
+    unit: type === 'flow' ? 'L/s' : type === 'pressure' ? 'bar' : 'dB',
+    lastReadingTime: '2026-06-02T08:45:00',
+    installedAt: data.installedAt || '2026-06-02'
+  };
+  SENSORS.unshift(sensor);
+  zone.sensors = (zone.sensors || 0) + 1;
+  const device = DEVICES.find(d => d.zoneId === zone.id);
+  if (device) device.sensorIds.push(id);
+  emit('sensorCreated', sensor);
+  return sensor;
+}
+
+export function updateSensor(id, data) {
+  const s = SENSORS.find(x => x.id === id);
+  if (!s) return null;
+  Object.assign(s, data);
+  if (data.zoneId && data.zoneId !== s.zoneId) {
+    const newZone = ZONES.find(z => z.id === data.zoneId);
+    if (newZone) { s.zoneName = newZone.name; }
+  }
+  emit('sensorUpdated', s);
+  return s;
+}
+
+export function deleteSensor(id) {
+  const i = SENSORS.findIndex(x => x.id === id);
+  if (i < 0) return false;
+  const s = SENSORS[i];
+  SENSORS.splice(i, 1);
+  const zone = ZONES.find(z => z.id === s.zoneId);
+  if (zone) zone.sensors = Math.max(0, (zone.sensors || 1) - 1);
+  DEVICES.forEach(d => { d.sensorIds = d.sensorIds.filter(x => x !== id); });
+  emit('sensorDeleted', id);
+  return true;
+}
+
+// ============ CRUD: DEVICES ============
+function nextDeviceId() {
+  const max = DEVICES.reduce((m, d) => Math.max(m, parseInt(d.id.slice(-3), 10) || 0), 0);
+  return `DEV-${String(max + 1).padStart(3, '0')}`;
+}
+
+const DEVICE_MODELS_MAP = {
+  outdoor_4g: { label: 'Outdoor RIO · 4G LTE · Solar', power: 'Solar 10WP + Battery 4.2V 18Ah', connectivity: '4G LTE', ip: 'IP66' },
+  outdoor_grid: { label: 'Outdoor RIO · 4G LTE · Grid', power: '220VAC mains', connectivity: '4G LTE', ip: 'IP66' },
+  indoor_wifi: { label: 'Indoor RIO · WiFi · Modbus', power: '12VDC', connectivity: '2.4 GHz WiFi', ip: 'IP60' },
+  indoor_eth: { label: 'Indoor RIO · Ethernet · Modbus', power: '12VDC', connectivity: 'Ethernet RJ45', ip: 'IP60' }
+};
+
+export function createDevice(data) {
+  const zone = ZONES.find(z => z.id === data.zoneId);
+  if (!zone) return null;
+  const id = nextDeviceId();
+  const modelKey = data.modelKey || 'outdoor_4g';
+  const model = DEVICE_MODELS_MAP[modelKey];
+  const isOutdoor = modelKey.startsWith('outdoor');
+  const device = {
+    id, name: data.name || `${zone.id} RIO`,
+    modelKey, model: model.label,
+    powerSource: model.power, connectivity: model.connectivity, ipRating: model.ip,
+    location: data.location || `${zone.name} · ${isOutdoor ? 'DMA Boundary' : 'Pump Room'}`,
+    zoneId: zone.id,
+    coordinates: [zone.center[0], zone.center[1]],
+    ipAddress: data.ipAddress || `10.42.${zone.id.slice(-1)}.${100 + DEVICES.length}`,
+    macAddress: data.macAddress || `8C:1F:64:${Math.floor(Math.random() * 256).toString(16).toUpperCase().padStart(2, '0')}:${Math.floor(Math.random() * 256).toString(16).toUpperCase().padStart(2, '0')}:${Math.floor(Math.random() * 256).toString(16).toUpperCase().padStart(2, '0')}`,
+    firmware: data.firmware || 'v2.5.0',
+    latestFirmware: 'v2.5.0',
+    updateAvailable: false, otaStatus: 'idle',
+    installedAt: data.installedAt || '2026-06-02',
+    lastHeartbeat: '2026-06-02T09:30:00',
+    uptimeDays: 0, status: data.status || 'online',
+    signal: 95, battery: isOutdoor ? 100 : null,
+    msgsPerHour: 240, errorRate: 0.01, latencyMs: 120,
+    sensorIds: [], operatingTempC: 28
+  };
+  DEVICES.unshift(device);
+  emit('deviceCreated', device);
+  return device;
+}
+
+export function updateDevice(id, data) {
+  const d = DEVICES.find(x => x.id === id);
+  if (!d) return null;
+  if (data.modelKey && data.modelKey !== d.modelKey) {
+    const m = DEVICE_MODELS_MAP[data.modelKey];
+    if (m) { d.modelKey = data.modelKey; d.model = m.label; d.powerSource = m.power; d.connectivity = m.connectivity; d.ipRating = m.ip; }
+  }
+  ['name', 'location', 'firmware', 'ipAddress', 'macAddress', 'status'].forEach(k => { if (data[k] !== undefined) d[k] = data[k]; });
+  emit('deviceUpdated', d);
+  return d;
+}
+
+export function deleteDevice(id) {
+  const i = DEVICES.findIndex(x => x.id === id);
+  if (i < 0) return false;
+  DEVICES.splice(i, 1);
+  emit('deviceDeleted', id);
+  return true;
+}
+
+// ============ CRUD: CUSTOMERS ============
+function nextCustomerId() {
+  const max = CUSTOMERS.reduce((m, c) => Math.max(m, parseInt(c.id.slice(-5), 10) || 0), 0);
+  return `CST-${String(max + 1).padStart(5, '0')}`;
+}
+
+export function createCustomer(data) {
+  const zone = ZONES.find(z => z.id === data.zoneId);
+  if (!zone) return null;
+  const id = nextCustomerId();
+  const type = data.type || 'Residential';
+  const baseUsage = type === 'Business' ? 150 : 20;
+  const history = Array.from({ length: 12 }, () => +(baseUsage * (0.85 + Math.random() * 0.3)).toFixed(1));
+  const meterAge = Number(data.meterAge) || 1;
+  const customer = {
+    id, name: data.name, zoneId: zone.id, zoneName: zone.name,
+    type, meterId: data.meterId || `MTR-${String(CUSTOMERS.length * 7).padStart(6, '0')}`,
+    meterAge, installedAt: `${2026 - meterAge}-05-15`,
+    history, avgMonthly: +(history.reduce((s, v) => s + v, 0) / history.length).toFixed(1),
+    lastReading: history[history.length - 1], lastReadingDate: '2026-05-31',
+    anomalies: [], riskScore: meterAge > 10 ? 10 : 0
+  };
+  CUSTOMERS.unshift(customer);
+  emit('customerCreated', customer);
+  return customer;
+}
+
+export function updateCustomer(id, data) {
+  const c = CUSTOMERS.find(x => x.id === id);
+  if (!c) return null;
+  Object.assign(c, data);
+  if (data.zoneId) {
+    const z = ZONES.find(z => z.id === data.zoneId);
+    if (z) c.zoneName = z.name;
+  }
+  emit('customerUpdated', c);
+  return c;
+}
+
+export function deleteCustomer(id) {
+  const i = CUSTOMERS.findIndex(x => x.id === id);
+  if (i < 0) return false;
+  CUSTOMERS.splice(i, 1);
+  emit('customerDeleted', id);
+  return true;
+}
+
+// ============ CRUD: TEAMS ============
+function nextTeamId() {
+  const max = TEAMS.reduce((m, t) => Math.max(m, t.id.charCodeAt(t.id.length - 1) - 64), 0);
+  return `TEAM-${String.fromCharCode(65 + max)}`;
+}
+
+export function createTeam(data) {
+  const id = nextTeamId();
+  const team = {
+    id,
+    name: data.name || `Field Team ${id.slice(-1)}`,
+    lead: data.lead, members: Number(data.members) || 3,
+    region: data.region || 'Jakarta Pusat',
+    specialties: data.specialties ? (Array.isArray(data.specialties) ? data.specialties : data.specialties.split(',').map(s => s.trim()).filter(Boolean)) : [],
+    status: data.status || 'active', activeWO: 0
+  };
+  TEAMS.unshift(team);
+  emit('teamCreated', team);
+  return team;
+}
+
+export function updateTeam(id, data) {
+  const t = TEAMS.find(x => x.id === id);
+  if (!t) return null;
+  Object.assign(t, data);
+  if (data.specialties && !Array.isArray(data.specialties)) {
+    t.specialties = data.specialties.split(',').map(s => s.trim()).filter(Boolean);
+  }
+  if (data.members) t.members = Number(data.members);
+  emit('teamUpdated', t);
+  return t;
+}
+
+export function deleteTeam(id) {
+  const i = TEAMS.findIndex(x => x.id === id);
+  if (i < 0) return false;
+  TEAMS.splice(i, 1);
+  emit('teamDeleted', id);
+  return true;
+}
+
+// ============ CRUD: WORK ORDERS (extends existing create) ============
+export function updateWorkOrder(id, data) {
+  const w = WORK_ORDERS.find(x => x.id === id);
+  if (!w) return null;
+  const changes = [];
+  ['title', 'description', 'priority', 'type', 'dueDate', 'assignee', 'estRecoveryM3', 'zoneId'].forEach(k => {
+    if (data[k] !== undefined && data[k] !== w[k]) { changes.push(`${k}: ${w[k]} → ${data[k]}`); w[k] = data[k]; }
+  });
+  if (data.estRecoveryM3) w.estRecoveryIDR = Number(data.estRecoveryM3) * 5000;
+  if (changes.length) {
+    w.updates.push({ ts: nowTs(), user: 'Budi Santoso', action: 'Edited', note: changes.join('; ') });
+    logActivity('wo', w.id, `WO ${w.id} edited`, 'clipboard-list');
+    emit('workOrderUpdated', w);
+  }
+  return w;
+}
+
+export function deleteWorkOrder(id) {
+  const i = WORK_ORDERS.findIndex(x => x.id === id);
+  if (i < 0) return false;
+  WORK_ORDERS.splice(i, 1);
+  logActivity('wo', id, `Work order ${id} cancelled`, 'x');
+  emit('workOrderDeleted', id);
+  return true;
 }

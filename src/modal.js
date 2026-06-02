@@ -1,4 +1,4 @@
-import { icon, renderIcons } from './icons.js';
+import { renderIcons, icon } from './icons.js';
 
 let currentClose = null;
 
@@ -53,4 +53,26 @@ export function openModal({ title, subtitle = '', body, footer = '', size = 'md'
 
 export function closeModal() {
   if (currentClose) currentClose();
+}
+
+export function confirm({ title, message, danger = true, confirmLabel = 'Delete', cancelLabel = 'Cancel', onConfirm }) {
+  openModal({
+    title,
+    size: 'sm',
+    body: `
+      <div class="flex gap-3 items-start">
+        <div class="w-9 h-9 rounded-full ${danger ? 'bg-red-100 text-red-600' : 'bg-amber-100 text-amber-600'} grid place-items-center shrink-0">
+          ${icon(danger ? 'triangle-alert' : 'circle-alert', 'w-4 h-4')}
+        </div>
+        <div class="text-sm text-slate-700 leading-relaxed">${message}</div>
+      </div>
+    `,
+    footer: `
+      <button class="btn-secondary" data-modal-close>${cancelLabel}</button>
+      <button class="${danger ? 'btn-danger' : 'btn-primary'}" data-action="confirm">${confirmLabel}</button>
+    `,
+    onAction: (action) => {
+      if (action === 'confirm') { onConfirm && onConfirm(); return true; }
+    }
+  });
 }
