@@ -42,7 +42,7 @@ function bootApp() {
 
 function handleLogout() {
   logout();
-  toast('Signed out', 'info', { duration: 1500 });
+  toast('Sampai jumpa lagi', 'info', { duration: 1500 });
   renderLogin(() => { location.hash = '#/dashboard'; bootApp(); });
 }
 
@@ -271,7 +271,7 @@ function renderShell() {
     <button class="fab-help" id="fab-help" title="Help & keyboard shortcuts (press ?)">${icon('info', 'w-5 h-5')}</button>
   `;
 
-  document.getElementById('refresh-btn').addEventListener('click', () => { rerender(); toast('Refreshed', 'success', { duration: 1500 }); });
+  document.getElementById('refresh-btn').addEventListener('click', () => { rerender(); toast('Data di-refresh', 'success', { duration: 1500 }); });
   document.getElementById('drawer-backdrop').addEventListener('click', closeDrawer);
   document.getElementById('notif-btn').addEventListener('click', e => { e.stopPropagation(); toggleNotifPanel(); });
   document.getElementById('cmdk-btn').addEventListener('click', openCommandPalette);
@@ -345,22 +345,22 @@ function handleRoute() {
   if (view !== 'map') destroyMap();
   if (view !== 'commercialmap') destroyCommercialMap();
   const titles = {
-    dashboard: ['Operations Dashboard', 'Real-time NRW recovery status'],
-    map: ['Network Map', 'Zones, pipes, sensors, work orders, alarms'],
-    reports: ['Reports & Analytics', 'Drill down into NRW, pressure, commercial, recovery'],
-    workorders: ['Work Order Management', 'Inspection, intervention, verification queue'],
-    zones: ['Zones / DMA', `${NRW.KPI.totalZones} zones · Cirebon + Indramayu pilot`],
-    sensors: ['Sensor Network', `${NRW.KPI.totalSensors} sensors · ${NRW.KPI.sensorUptime}% uptime`],
-    alarms: ['Alarm Center', `${NRW.KPI.activeAlarms} active · ${NRW.KPI.criticalAlarms} critical`],
-    customers: ['Customers', `${NRW.CUSTOMERS.length} customers across pilot zones`],
-    analytics: ['MNF Analytics', 'Minimum night flow trends and zone comparison'],
-    schedule: ['Schedule', 'Work order calendar and field team assignments'],
-    teams: ['Field Teams', `${NRW.TEAMS.length} teams · current workload and availability`],
-    hardware: ['Hardware Live', `${NRW.DEVICES.length} telemetric devices · live MQTT stream`],
-    commercial: ['Commercial Loss Management', `${NRW.CASES.filter(c => !['Resolved', 'WrittenOff'].includes(c.status)).length} open cases · ${NRW.CAMPAIGNS.filter(c => c.status === 'active').length} active campaigns`],
-    savings: ['Savings Snapshot', 'Penghematan per wilayah · region-level recovery view'],
-    pricing: ['Pricing · Master Data', `${NRW.TARIFFS.length} tariff tiers · effective ${NRW.formatDate(NRW.TARIFFS[0]?.effectiveDate)}`],
-    commercialmap: ['Commercial Map', 'Kerugian vs keuntungan per zona berdasarkan komersialisasi']
+    dashboard: ['Dashboard', 'Bagaimana kondisi pilot hari ini'],
+    map: ['Network Map', 'Peta zona, pipa, sensor, work order, dan alarm dalam satu tampilan'],
+    reports: ['Reports & Analytics', 'Analisis mendalam — siap diekspor ke PDF atau Excel'],
+    workorders: ['Work Orders', 'Antrian inspeksi, intervensi, dan verifikasi lapangan'],
+    zones: ['Zones / DMA', `${NRW.KPI.totalZones} zona pilot di Cirebon dan Indramayu`],
+    sensors: ['Sensor Network', `${NRW.KPI.totalSensors} sensor terpasang · uptime ${NRW.KPI.sensorUptime}%`],
+    alarms: ['Alarm Center', `${NRW.KPI.activeAlarms} alarm aktif · ${NRW.KPI.criticalAlarms} kategori critical`],
+    customers: ['Customers', `${NRW.CUSTOMERS.length} pelanggan terdaftar di pilot zones`],
+    analytics: ['MNF Analytics', 'Tren minimum night flow dan komparasi antar zona'],
+    schedule: ['Schedule', 'Kalender work order dan beban kerja tim lapangan'],
+    teams: ['Field Teams', `${NRW.TEAMS.length} tim aktif · lihat workload dan ketersediaan`],
+    hardware: ['Hardware Live', `${NRW.DEVICES.length} device telemetri · stream MQTT real-time`],
+    commercial: ['Commercial Loss', `${NRW.CASES.filter(c => !['Resolved', 'WrittenOff'].includes(c.status)).length} kasus terbuka · ${NRW.CAMPAIGNS.filter(c => c.status === 'active').length} campaign berjalan`],
+    savings: ['Savings Snapshot', 'Snapshot penghematan air dan pendapatan per wilayah'],
+    pricing: ['Pricing · Master Data', `${NRW.TARIFFS.length} tier tarif aktif · efektif sejak ${NRW.formatDate(NRW.TARIFFS[0]?.effectiveDate)}`],
+    commercialmap: ['Commercial Map', 'Peta finansial — kerugian vs keuntungan per zona']
   };
   document.getElementById('view-title').textContent = titles[view][0];
   document.getElementById('view-sub').textContent = titles[view][1];
@@ -422,10 +422,10 @@ function renderDashboard(root) {
       <div class="welcome-banner">
         <div class="w-10 h-10 rounded-lg bg-sky-500 text-white grid place-items-center shrink-0">${icon('waves', 'w-5 h-5')}</div>
         <div class="flex-1">
-          <div class="font-semibold text-sm">Selamat datang${user?.name ? ', ' + user.name.split(' ')[0] : ''} 👋</div>
-          <div class="text-slate-600 text-xs mt-1">Ini adalah operations dashboard. Coba <button class="text-sky-600 hover:underline font-medium" data-welcome-action="cmdk">⌘K</button> untuk search cepat, klik <button class="text-sky-600 hover:underline font-medium" data-welcome-action="savings">Savings · Wilayah</button> untuk snapshot penghematan, atau klik tombol <span class="inline-flex items-center gap-1">${icon('info', 'w-3 h-3 inline text-sky-600')}</span> di kiri-bawah untuk panduan lengkap.</div>
+          <div class="font-semibold text-sm">Halo${user?.name ? ', ' + user.name.split(' ')[0] : ''} — selamat datang kembali 👋</div>
+          <div class="text-slate-600 text-xs mt-1">Berikut ringkasan operasional pilot hari ini. Mau langsung lompat ke halaman lain? Tekan <button class="text-sky-600 hover:underline font-medium" data-welcome-action="cmdk">⌘K</button> untuk command palette, atau buka <button class="text-sky-600 hover:underline font-medium" data-welcome-action="savings">Savings · Wilayah</button> untuk melihat penghematan per region. Butuh panduan? Tombol ${icon('info', 'w-3 h-3 inline text-sky-600')} di kiri-bawah selalu tersedia.</div>
         </div>
-        <button class="text-slate-400 hover:text-slate-700 p-1.5 rounded hover:bg-white/50 shrink-0" id="welcome-dismiss" title="Dismiss">${icon('x', 'w-3.5 h-3.5')}</button>
+        <button class="text-slate-400 hover:text-slate-700 p-1.5 rounded hover:bg-white/50 shrink-0" id="welcome-dismiss" title="Tutup">${icon('x', 'w-3.5 h-3.5')}</button>
       </div>
     ` : ''}
     <div class="grid grid-cols-[repeat(auto-fit,minmax(220px,1fr))] gap-3">
@@ -517,10 +517,10 @@ function renderDashboard(root) {
       <div class="card">
         <div class="card-header"><h3>Quick actions</h3></div>
         <div class="p-3 grid grid-cols-2 gap-2">
-          <button class="btn-secondary flex flex-col items-start text-left p-3 gap-1 hover:border-sky-500 hover:text-sky-600" id="qa-create-wo">${icon('plus', 'w-4 h-4')}<span class="font-semibold text-xs">New Work Order</span><span class="text-[10px] text-slate-400">Create from suspected loss</span></button>
-          <button class="btn-secondary flex flex-col items-start text-left p-3 gap-1 hover:border-sky-500 hover:text-sky-600" data-qa-nav="alarms">${icon('triangle-alert', 'w-4 h-4')}<span class="font-semibold text-xs">Review Alarms</span><span class="text-[10px] text-slate-400">${NRW.KPI.activeAlarms} active</span></button>
-          <button class="btn-secondary flex flex-col items-start text-left p-3 gap-1 hover:border-sky-500 hover:text-sky-600" data-qa-nav="analytics">${icon('activity', 'w-4 h-4')}<span class="font-semibold text-xs">MNF Analytics</span><span class="text-[10px] text-slate-400">Compare zones</span></button>
-          <button class="btn-secondary flex flex-col items-start text-left p-3 gap-1 hover:border-sky-500 hover:text-sky-600" data-qa-nav="schedule">${icon('calendar-days', 'w-4 h-4')}<span class="font-semibold text-xs">Schedule</span><span class="text-[10px] text-slate-400">Upcoming WO</span></button>
+          <button class="btn-secondary flex flex-col items-start text-left p-3 gap-1 hover:border-sky-500 hover:text-sky-600" id="qa-create-wo">${icon('plus', 'w-4 h-4')}<span class="font-semibold text-xs">Buat Work Order</span><span class="text-[10px] text-slate-400">Mulai dari indikasi kebocoran</span></button>
+          <button class="btn-secondary flex flex-col items-start text-left p-3 gap-1 hover:border-sky-500 hover:text-sky-600" data-qa-nav="alarms">${icon('triangle-alert', 'w-4 h-4')}<span class="font-semibold text-xs">Tinjau Alarm</span><span class="text-[10px] text-slate-400">${NRW.KPI.activeAlarms} alarm aktif</span></button>
+          <button class="btn-secondary flex flex-col items-start text-left p-3 gap-1 hover:border-sky-500 hover:text-sky-600" data-qa-nav="analytics">${icon('activity', 'w-4 h-4')}<span class="font-semibold text-xs">MNF Analytics</span><span class="text-[10px] text-slate-400">Bandingkan zona</span></button>
+          <button class="btn-secondary flex flex-col items-start text-left p-3 gap-1 hover:border-sky-500 hover:text-sky-600" data-qa-nav="schedule">${icon('calendar-days', 'w-4 h-4')}<span class="font-semibold text-xs">Jadwal</span><span class="text-[10px] text-slate-400">Work order mendatang</span></button>
         </div>
       </div>
     </div>
@@ -865,7 +865,7 @@ function renderWorkOrders(root) {
           </select>
           <select class="select-input" id="f-priority"><option value="all">All priority</option><option>Critical</option><option>High</option><option>Medium</option><option>Low</option></select>
           <select class="select-input" id="f-zone"><option value="all">All zones</option>${NRW.ZONES.map(z => `<option value="${z.id}">${z.name}</option>`).join('')}</select>
-          <button class="btn-primary flex items-center gap-1.5" id="new-wo-btn">${icon('plus', 'w-3.5 h-3.5')} New Work Order</button>
+          <button class="btn-primary flex items-center gap-1.5" id="new-wo-btn">${icon('plus', 'w-3.5 h-3.5')} Buat Work Order</button>
         </div>
       </div>
       <div class="overflow-x-auto"><table class="data-table">
@@ -873,8 +873,8 @@ function renderWorkOrders(root) {
         <tbody>${filtered.map(w => {
           const zone = NRW.getZone(w.zoneId);
           const overdue = new Date(w.dueDate) < new Date('2026-06-02') && !['Verified', 'Closed'].includes(w.status);
-          return `<tr class="clickable" data-wo="${w.id}"><td><strong>${w.id}</strong></td><td>${w.title}</td><td>${zone?.name || w.zoneId}</td><td>${w.type}</td><td><span class="priority priority-${w.priority.toLowerCase()}">${w.priority}</span></td><td><span class="badge" style="background:${NRW.statusColor(w.status)}">${w.status}</span></td><td>${w.assignee || '<span class="text-slate-400">unassigned</span>'}</td><td class="${overdue ? 'text-red-500' : ''}">${NRW.formatDate(w.dueDate)} ${overdue ? icon('triangle-alert', 'w-3 h-3 inline') : ''}</td><td>${w.suspicionScore}</td><td>${w.estRecoveryM3 ? NRW.formatM3(w.estRecoveryM3) : '-'}</td><td class="!py-1"><div class="flex gap-0.5"><button class="row-action" data-edit-wo="${w.id}" title="Edit">${icon('pencil', 'w-3 h-3')}</button><button class="row-action danger" data-delete-wo="${w.id}" title="Cancel">${icon('trash-2', 'w-3 h-3')}</button></div></td></tr>`;
-        }).join('')}${!filtered.length ? '<tr><td colspan="11" class="text-center py-9 text-slate-400">No work orders match current filters</td></tr>' : ''}</tbody>
+          return `<tr class="clickable" data-wo="${w.id}"><td><strong>${w.id}</strong></td><td>${w.title}</td><td>${zone?.name || w.zoneId}</td><td>${w.type}</td><td><span class="priority priority-${w.priority.toLowerCase()}">${w.priority}</span></td><td><span class="badge" style="background:${NRW.statusColor(w.status)}">${NRW.formatStatus(w.status)}</span></td><td>${w.assignee || '<span class="text-slate-400">unassigned</span>'}</td><td class="${overdue ? 'text-red-500' : ''}">${NRW.formatDate(w.dueDate)} ${overdue ? icon('triangle-alert', 'w-3 h-3 inline') : ''}</td><td>${w.suspicionScore}</td><td>${w.estRecoveryM3 ? NRW.formatM3(w.estRecoveryM3) : '-'}</td><td class="!py-1"><div class="flex gap-0.5"><button class="row-action" data-edit-wo="${w.id}" title="Edit">${icon('pencil', 'w-3 h-3')}</button><button class="row-action danger" data-delete-wo="${w.id}" title="Cancel">${icon('trash-2', 'w-3 h-3')}</button></div></td></tr>`;
+        }).join('')}${!filtered.length ? '<tr><td colspan="11" class="text-center py-9 text-slate-400">Tidak ada work order yang cocok dengan filter saat ini — coba longgarkan filter atau buat work order baru</td></tr>' : ''}</tbody>
       </table></div>
     </div>
   `;
@@ -901,7 +901,7 @@ function renderZones(root) {
   root.innerHTML = `
     <div class="flex justify-between items-center">
       <div class="flex gap-2 items-center"><span class="chip">${NRW.ZONES.length} zones</span><span class="chip chip-success">${NRW.ZONES.reduce((s, z) => s + z.customers, 0).toLocaleString()} customers</span></div>
-      <button class="btn-primary flex items-center gap-1.5" id="new-zone-btn">${icon('plus', 'w-3.5 h-3.5')} New Zone</button>
+      <button class="btn-primary flex items-center gap-1.5" id="new-zone-btn">${icon('plus', 'w-3.5 h-3.5')} Tambah Zona</button>
     </div>
     <div class="grid grid-cols-[repeat(auto-fill,minmax(320px,1fr))] gap-3.5">
       ${NRW.ZONES.map(z => {
@@ -944,7 +944,7 @@ function renderZones(root) {
 function renderSensors(root) {
   root.innerHTML = `<div class="card"><div class="card-header"><h3>Sensor Registry</h3>
     <div class="flex gap-2 items-center"><span class="chip">${NRW.SENSORS.length} sensors</span>
-      <button class="btn-primary flex items-center gap-1.5" id="new-sensor-btn">${icon('plus', 'w-3.5 h-3.5')} New Sensor</button>
+      <button class="btn-primary flex items-center gap-1.5" id="new-sensor-btn">${icon('plus', 'w-3.5 h-3.5')} Daftar Sensor</button>
     </div></div>
     <div class="overflow-x-auto"><table class="data-table">
       <thead><tr><th>ID</th><th>Type</th><th>Zone</th><th>Location</th><th>Status</th><th>Last reading</th><th>Battery</th><th>Signal</th><th>Actions</th></tr></thead>
@@ -1016,7 +1016,7 @@ function renderCustomers(root) {
         <div class="flex gap-2">
           <select class="select-input" id="cf-zone"><option value="all">All zones</option>${NRW.ZONES.map(z => `<option value="${z.id}">${z.name}</option>`).join('')}</select>
           <select class="select-input" id="cf-anom"><option value="all">All customers</option><option value="zero_consumption">Zero consumption</option><option value="sudden_drop">Sudden drop</option><option value="unusual_spike">Usage spike</option><option value="old_meter">Old meter</option></select>
-          <button class="btn-primary flex items-center gap-1.5" id="new-customer-btn">${icon('plus', 'w-3.5 h-3.5')} New Customer</button>
+          <button class="btn-primary flex items-center gap-1.5" id="new-customer-btn">${icon('plus', 'w-3.5 h-3.5')} Tambah Pelanggan</button>
         </div>
       </div>
       <div class="overflow-x-auto"><table class="data-table">
@@ -1131,7 +1131,7 @@ function renderSchedule(root) {
         <div class="flex gap-2 items-center">
           <button class="icon-btn" title="Previous month">${icon('chevron-left', 'w-4 h-4')}</button>
           <button class="icon-btn" title="Next month">${icon('chevron-right', 'w-4 h-4')}</button>
-          <button class="btn-primary flex items-center gap-1.5" id="sched-new-wo">${icon('plus', 'w-3.5 h-3.5')} Schedule WO</button>
+          <button class="btn-primary flex items-center gap-1.5" id="sched-new-wo">${icon('plus', 'w-3.5 h-3.5')} Jadwalkan WO</button>
         </div>
       </div>
       <div class="p-4">
@@ -1185,7 +1185,7 @@ function renderTeams(root) {
   root.innerHTML = `
     <div class="flex justify-between items-center">
       <div class="flex gap-2 items-center"><span class="chip">${NRW.TEAMS.length} teams</span><span class="chip">${NRW.TEAMS.reduce((s, t) => s + t.members, 0)} members total</span></div>
-      <button class="btn-primary flex items-center gap-1.5" id="new-team-btn">${icon('plus', 'w-3.5 h-3.5')} New Team</button>
+      <button class="btn-primary flex items-center gap-1.5" id="new-team-btn">${icon('plus', 'w-3.5 h-3.5')} Tambah Tim</button>
     </div>
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
       ${NRW.TEAMS.map(t => {
@@ -1242,7 +1242,7 @@ function renderHardware(root) {
       <div class="card">
         <div class="card-header">
           <div class="flex items-center gap-3"><h3>Live device grid</h3><span class="live-pill"><span class="live-dot"></span><span id="hw-tick-counter"><strong>${s.msgsPerMin}</strong>/min · avg latency <strong>${s.avgLatency}ms</strong></span></span></div>
-          <div class="flex items-center gap-2"><span class="chip">${NRW.DEVICES.length} devices</span><button class="btn-primary flex items-center gap-1.5" id="new-device-btn">${icon('plus', 'w-3.5 h-3.5')} New Device</button></div>
+          <div class="flex items-center gap-2"><span class="chip">${NRW.DEVICES.length} devices</span><button class="btn-primary flex items-center gap-1.5" id="new-device-btn">${icon('plus', 'w-3.5 h-3.5')} Daftar Device</button></div>
         </div>
         <div class="p-3 grid grid-cols-1 md:grid-cols-2 gap-2.5">
           ${NRW.DEVICES.map(d => deviceTile(d)).join('')}
@@ -1504,7 +1504,7 @@ function openZoneDrawer(zoneId) {
         </div>
       </div>
       ${alarms.length ? `<div><h4 class="mb-2.5">Active alarms (${alarms.length})</h4>${alarms.map(a => `<div class="flex gap-3 p-2.5 rounded-md bg-slate-50 mb-1.5 items-start"><span class="badge" style="background:${NRW.severityColor(a.severity)}">${a.severity}</span><div><div><strong>${a.type.replace(/_/g, ' ')}</strong> — ${a.message}</div><div class="text-slate-400 text-[11px] mt-0.5">${a.id} · ${NRW.timeAgo(a.triggeredAt)}</div></div></div>`).join('')}</div>` : ''}
-      ${wos.length ? `<div><h4 class="mb-2.5">Work orders (${wos.length})</h4><table class="data-table compact"><thead><tr><th>ID</th><th>Title</th><th>Status</th><th>Priority</th></tr></thead><tbody>${wos.map(w => `<tr class="clickable" data-wo="${w.id}"><td><strong>${w.id}</strong></td><td>${w.title}</td><td><span class="badge" style="background:${NRW.statusColor(w.status)}">${w.status}</span></td><td>${w.priority}</td></tr>`).join('')}</tbody></table></div>` : ''}
+      ${wos.length ? `<div><h4 class="mb-2.5">Work orders (${wos.length})</h4><table class="data-table compact"><thead><tr><th>ID</th><th>Title</th><th>Status</th><th>Priority</th></tr></thead><tbody>${wos.map(w => `<tr class="clickable" data-wo="${w.id}"><td><strong>${w.id}</strong></td><td>${w.title}</td><td><span class="badge" style="background:${NRW.statusColor(w.status)}">${NRW.formatStatus(w.status)}</span></td><td>${w.priority}</td></tr>`).join('')}</tbody></table></div>` : ''}
       ${interventions.length ? `<div><h4 class="mb-2.5">Past interventions (${interventions.length})</h4>${interventions.map(i => `<div class="flex justify-between p-2.5 rounded-md bg-slate-50 mb-1.5 items-start flex-wrap gap-2.5 cursor-pointer hover:bg-sky-50" data-intervention="${i.id}"><div><strong>${i.type}</strong><div class="text-slate-400 text-[11px] mt-0.5">${NRW.formatDate(i.completedAt)} · ${i.id}</div></div><div class="flex gap-3.5 text-xs items-center flex-wrap"><span class="text-emerald-600">−${i.mnfReduction} L/s MNF</span><span>${NRW.formatM3(i.waterRecoveredM3)}</span><span>${NRW.formatIDR(i.revenueRecoveredIDR)}</span></div></div>`).join('')}</div>` : ''}
       <div><h4 class="mb-2.5">Sensors in zone (${sensors.length})</h4><table class="data-table compact"><thead><tr><th>ID</th><th>Type</th><th>Location</th><th>Status</th><th>Reading</th></tr></thead><tbody>${sensors.map(s => `<tr class="clickable" data-sensor="${s.id}"><td><strong>${s.id}</strong></td><td>${s.type}</td><td>${s.location}</td><td><span class="badge" style="background:${s.status === 'online' ? '#10b981' : s.status === 'warning' ? '#f59e0b' : '#94a3b8'}">${s.status}</span></td><td>${s.lastReading} ${s.unit}</td></tr>`).join('')}</tbody></table></div>
       ${customers.length ? `<div><h4 class="mb-2.5">Sample customers (${customers.length} total)</h4><table class="data-table compact"><thead><tr><th>ID</th><th>Name</th><th>Type</th><th>Avg / Last</th><th>Anomalies</th></tr></thead><tbody>${customers.slice(0, 5).map(c => `<tr class="clickable" data-customer="${c.id}"><td><strong>${c.id}</strong></td><td>${c.name}</td><td>${c.type}</td><td>${c.avgMonthly} / ${c.lastReading}</td><td>${c.anomalies.map(a => `<span class="badge" style="background:${a.severity === 'high' ? '#dc2626' : '#f59e0b'}">${a.label}</span>`).join(' ') || '<span class="text-slate-400 text-[11px]">none</span>'}</td></tr>`).join('')}</tbody></table>${customers.length > 5 ? `<div class="text-center mt-2"><a href="#/customers" class="text-xs text-sky-500" data-close>View all ${customers.length} customers ${icon('arrow-right', 'w-3 h-3 inline')}</a></div>` : ''}</div>` : ''}
@@ -1554,7 +1554,7 @@ function openWorkOrderDrawer(woId) {
     <div class="flex-1 overflow-y-auto px-6 py-5 flex flex-col gap-5">
       <div class="flex gap-2 items-center flex-wrap">
         <span class="priority priority-${w.priority.toLowerCase()}">${w.priority}</span>
-        <span class="badge" style="background:${NRW.statusColor(w.status)}">${w.status}</span>
+        <span class="badge" style="background:${NRW.statusColor(w.status)}">${NRW.formatStatus(w.status)}</span>
         <span class="text-slate-500">${w.type}</span>
         ${canAct ? `<div class="flex-1"></div><button class="btn-secondary text-[11px] flex items-center gap-1.5" id="wo-add-note">${icon('message-square', 'w-3 h-3')} Add note</button><button class="btn-secondary text-[11px] flex items-center gap-1.5" id="wo-add-evidence">${icon('paperclip', 'w-3 h-3')} Add evidence</button><select class="select-input text-[11px]" id="wo-change-status"><option value="">Change status...</option><option value="Assigned">Assigned</option><option value="InProgress">In Progress</option><option value="PendingEvidence">Pending Evidence</option><option value="Completed">Completed</option><option value="Verified">Verified</option><option value="Rejected">Rejected</option><option value="Closed">Closed</option></select>` : ''}
       </div>
@@ -1747,8 +1747,8 @@ function openTeamDrawer(teamId) {
     <div class="flex-1 overflow-y-auto px-6 py-5 flex flex-col gap-5">
       <div class="grid grid-cols-3 gap-2">${miniMetric('Team members', t.members)}${miniMetric('Open WO', open.length)}${miniMetric('Completed', completed.length)}</div>
       <div><h4 class="mb-2.5">Specialties</h4><div class="flex gap-1.5 flex-wrap">${t.specialties.map(s => `<span class="chip">${s}</span>`).join('')}</div></div>
-      <div><h4 class="mb-2.5">Active work orders (${open.length})</h4>${open.length ? `<table class="data-table compact"><thead><tr><th>ID</th><th>Title</th><th>Due</th><th>Status</th></tr></thead><tbody>${open.map(w => `<tr class="clickable" data-wo="${w.id}"><td><strong>${w.id}</strong></td><td>${w.title}</td><td>${NRW.formatDate(w.dueDate)}</td><td><span class="badge" style="background:${NRW.statusColor(w.status)}">${w.status}</span></td></tr>`).join('')}</tbody></table>` : '<div class="text-slate-400 text-xs">No active work orders</div>'}</div>
-      ${completed.length ? `<div><h4 class="mb-2.5">Recently closed (${completed.length})</h4><table class="data-table compact"><thead><tr><th>ID</th><th>Title</th><th>Closed</th><th>Status</th></tr></thead><tbody>${completed.slice(0, 5).map(w => `<tr class="clickable" data-wo="${w.id}"><td><strong>${w.id}</strong></td><td>${w.title}</td><td>${NRW.formatDate(w.closedAt || w.dueDate)}</td><td><span class="badge" style="background:${NRW.statusColor(w.status)}">${w.status}</span></td></tr>`).join('')}</tbody></table></div>` : ''}
+      <div><h4 class="mb-2.5">Active work orders (${open.length})</h4>${open.length ? `<table class="data-table compact"><thead><tr><th>ID</th><th>Title</th><th>Due</th><th>Status</th></tr></thead><tbody>${open.map(w => `<tr class="clickable" data-wo="${w.id}"><td><strong>${w.id}</strong></td><td>${w.title}</td><td>${NRW.formatDate(w.dueDate)}</td><td><span class="badge" style="background:${NRW.statusColor(w.status)}">${NRW.formatStatus(w.status)}</span></td></tr>`).join('')}</tbody></table>` : '<div class="text-slate-400 text-xs">No active work orders</div>'}</div>
+      ${completed.length ? `<div><h4 class="mb-2.5">Recently closed (${completed.length})</h4><table class="data-table compact"><thead><tr><th>ID</th><th>Title</th><th>Closed</th><th>Status</th></tr></thead><tbody>${completed.slice(0, 5).map(w => `<tr class="clickable" data-wo="${w.id}"><td><strong>${w.id}</strong></td><td>${w.title}</td><td>${NRW.formatDate(w.closedAt || w.dueDate)}</td><td><span class="badge" style="background:${NRW.statusColor(w.status)}">${NRW.formatStatus(w.status)}</span></td></tr>`).join('')}</tbody></table></div>` : ''}
     </div>
     <div class="px-6 py-3.5 border-t border-slate-200 flex gap-2 justify-end">
       <button class="btn-secondary" data-close>Close</button>
@@ -1834,9 +1834,9 @@ function openCreateWOModal(prefill = {}) {
       if (action !== 'submit') return;
       const form = overlay.querySelector('#wo-form');
       const data = Object.fromEntries(new FormData(form).entries());
-      if (!data.title || !data.zoneId || !data.dueDate) { toast('Please fill required fields', 'error'); return false; }
+      if (!data.title || !data.zoneId || !data.dueDate) { toast('Mohon lengkapi field wajib', 'error'); return false; }
       const wo = State.createWorkOrder(data);
-      toast(`Work order ${wo.id} created`, 'success');
+      toast(`Work order ${wo.id} dibuat`, 'success');
       setTimeout(() => openWorkOrderDrawer(wo.id), 250);
       return true;
     }
@@ -1853,9 +1853,9 @@ function openAddNoteModal(woId) {
     onAction: (action, overlay) => {
       if (action !== 'submit') return;
       const note = overlay.querySelector('#note-text').value.trim();
-      if (!note) { toast('Please enter a note', 'error'); return false; }
+      if (!note) { toast('Tolong tulis catatannya dulu', 'error'); return false; }
       State.addWorkOrderNote(woId, note);
-      toast('Note added to timeline', 'success');
+      toast('Catatan ditambahkan ke timeline', 'success');
       return true;
     }
   });
@@ -1877,9 +1877,9 @@ function openAddEvidenceModal(woId) {
       if (action !== 'submit') return;
       const type = overlay.querySelector('#ev-type').value;
       const label = overlay.querySelector('#ev-label').value.trim();
-      if (!label) { toast('Please add a label', 'error'); return false; }
+      if (!label) { toast('Mohon isi labelnya', 'error'); return false; }
       State.addEvidence(woId, { type, label });
-      toast('Evidence attached', 'success');
+      toast('Bukti terlampir', 'success');
       return true;
     }
   });
@@ -1956,7 +1956,7 @@ function renderPricing(root) {
         <div class="font-semibold text-sm">Master data pricing</div>
         <div class="text-slate-500 text-xs mt-0.5">Atur struktur tariff per blok konsumsi & tipe pelanggan. Perubahan akan otomatis diterapkan pada estimasi recovery, billing audit, dan commercial cases.</div>
       </div>
-      <button class="btn-primary flex items-center gap-1.5" id="new-tariff-btn">${icon('plus', 'w-3.5 h-3.5')} New Tariff</button>
+      <button class="btn-primary flex items-center gap-1.5" id="new-tariff-btn">${icon('plus', 'w-3.5 h-3.5')} Tambah Tarif</button>
     </div>
 
     <div class="grid grid-cols-[repeat(auto-fit,minmax(220px,1fr))] gap-3">
@@ -2073,9 +2073,9 @@ function openTariffFormModal(tariff = null) {
     onAction: (action, overlay) => {
       if (action !== 'submit') return;
       const data = Object.fromEntries(new FormData(overlay.querySelector('#tariff-form')).entries());
-      if (!data.tier || !data.rate) { toast('Tier name and rate are required', 'error'); return false; }
-      if (isEdit) { State.updateTariff(tariff.id, data); toast(`Tariff ${tariff.code} updated`, 'success'); }
-      else { const t = State.createTariff(data); toast(`Tariff ${t.code} added`, 'success'); }
+      if (!data.tier || !data.rate) { toast('Nama tier dan tarif wajib diisi', 'error'); return false; }
+      if (isEdit) { State.updateTariff(tariff.id, data); toast(`Tarif ${tariff.code} tersimpan`, 'success'); }
+      else { const t = State.createTariff(data); toast(`Tarif ${t.code} berhasil ditambahkan`, 'success'); }
       rerender();
       return true;
     }
@@ -2086,10 +2086,10 @@ function deleteTariff(id) {
   const t = NRW.getTariff(id);
   if (!t) return;
   confirm({
-    title: 'Delete tariff tier?',
-    message: `Tariff <strong>${t.tier}</strong> (Rp ${t.rate.toLocaleString()}/m³) will be removed. Customers currently in this tier will fall back to the next applicable tier.`,
-    confirmLabel: 'Delete tariff',
-    onConfirm: () => { State.deleteTariff(id); toast(`Tariff ${t.code} deleted`, 'success'); rerender(); }
+    title: 'Hapus tier tarif ini?',
+    message: `Tariff <strong>${t.tier}</strong> (Rp ${t.rate.toLocaleString()}/m³) will be removed. Pelanggan yang sekarang di tier ini akan dipindahkan otomatis ke tier berikutnya.`,
+    confirmLabel: 'Hapus tarif',
+    onConfirm: () => { State.deleteTariff(id); toast(`Tarif ${t.code} dihapus`, 'success'); rerender(); }
   });
 }
 
@@ -2501,7 +2501,7 @@ function renderCommercial(root) {
             <select class="select-input" id="cs-status"><option value="all">All status</option><option>Open</option><option>InAudit</option><option>AwaitingCustomer</option><option>PendingReplacement</option><option>Resolved</option><option>WrittenOff</option></select>
             <select class="select-input" id="cs-type"><option value="all">All types</option><option value="zero_consumption">Zero consumption</option><option value="sudden_drop">Sudden drop</option><option value="meter_malfunction">Meter malfunction</option><option value="illegal_connection">Illegal connection</option><option value="billing_dispute">Billing dispute</option><option value="meter_age">Meter age</option></select>
             <select class="select-input" id="cs-zone"><option value="all">All zones</option>${NRW.ZONES.map(z => `<option value="${z.id}">${z.name}</option>`).join('')}</select>
-            <button class="btn-primary flex items-center gap-1.5" id="new-case-btn">${icon('plus', 'w-3.5 h-3.5')} New Case</button>
+            <button class="btn-primary flex items-center gap-1.5" id="new-case-btn">${icon('plus', 'w-3.5 h-3.5')} Buka Kasus</button>
           </div>
         </div>
         <div class="overflow-x-auto"><table class="data-table">
@@ -2516,12 +2516,12 @@ function renderCommercial(root) {
               <td>${c.monthsAffected}</td>
               <td>${NRW.formatIDR(c.estRevenueLossIDR)}<div class="text-emerald-600 text-[10px]">rec. ${NRW.formatIDR(c.estRecoveryIDR)}</div></td>
               <td><span class="priority priority-${c.priority.toLowerCase()}">${c.priority}</span></td>
-              <td><span class="badge" style="background:${NRW.caseStatusColor(c.status)}">${c.status}</span></td>
+              <td><span class="badge" style="background:${NRW.caseStatusColor(c.status)}">${NRW.formatStatus(c.status)}</span></td>
               <td>${c.assignee || '<span class="text-slate-400">unassigned</span>'}</td>
               <td class="${overdue ? 'text-red-500' : ''}">${c.dueDate ? NRW.formatDate(c.dueDate) : '-'} ${overdue ? icon('triangle-alert', 'w-3 h-3 inline') : ''}</td>
               <td class="!py-1"><div class="flex gap-0.5"><button class="row-action" data-edit-case="${c.id}" title="Edit">${icon('pencil', 'w-3 h-3')}</button><button class="row-action danger" data-delete-case="${c.id}" title="Delete">${icon('trash-2', 'w-3 h-3')}</button></div></td>
             </tr>`;
-          }).join('') || '<tr><td colspan="11" class="text-center py-9 text-slate-400">No commercial cases match the current filters</td></tr>'}</tbody>
+          }).join('') || '<tr><td colspan="11" class="text-center py-9 text-slate-400">Belum ada kasus yang cocok — coba ubah filter, atau buka kasus baru dari customer yang mencurigakan</td></tr>'}</tbody>
         </table></div>
       </div>
 
@@ -2540,7 +2540,7 @@ function renderCommercial(root) {
     <div class="card">
       <div class="card-header">
         <h3>Recovery campaigns</h3>
-        <button class="btn-primary flex items-center gap-1.5" id="new-campaign-btn">${icon('plus', 'w-3.5 h-3.5')} New Campaign</button>
+        <button class="btn-primary flex items-center gap-1.5" id="new-campaign-btn">${icon('plus', 'w-3.5 h-3.5')} Buat Campaign</button>
       </div>
       <div class="p-3 grid grid-cols-1 lg:grid-cols-2 gap-3">
         ${NRW.CAMPAIGNS.map(c => {
@@ -2639,10 +2639,10 @@ function deleteCase(id) {
   const c = NRW.getCase(id);
   if (!c) return;
   confirm({
-    title: 'Delete commercial case?',
-    message: `Case <strong>${c.id}</strong> for ${c.customerName} (loss estimate ${NRW.formatIDR(c.estRevenueLossIDR)}) will be removed from the case log.`,
-    confirmLabel: 'Delete case',
-    onConfirm: () => { State.deleteCase(id); toast(`Case ${id} deleted`, 'success'); closeDrawer(); rerender(); }
+    title: 'Hapus kasus ini?',
+    message: `Case <strong>${c.id}</strong> for ${c.customerName} (loss estimate ${NRW.formatIDR(c.estRevenueLossIDR)}) akan dihapus dari log kasus.`,
+    confirmLabel: 'Hapus kasus',
+    onConfirm: () => { State.deleteCase(id); toast(`Kasus ${id} dihapus`, 'success'); closeDrawer(); rerender(); }
   });
 }
 
@@ -2650,10 +2650,10 @@ function deleteCampaign(id) {
   const c = NRW.getCampaign(id);
   if (!c) return;
   confirm({
-    title: 'Delete campaign?',
-    message: `Campaign <strong>${c.name}</strong> will be removed. Cases generated from this campaign will remain.`,
-    confirmLabel: 'Delete campaign',
-    onConfirm: () => { State.deleteCampaign(id); toast(`Campaign ${id} deleted`, 'success'); rerender(); }
+    title: 'Hapus campaign ini?',
+    message: `Campaign <strong>${c.name}</strong> will be removed. Kasus yang sudah ter-generate dari campaign ini tetap tersimpan.`,
+    confirmLabel: 'Hapus campaign',
+    onConfirm: () => { State.deleteCampaign(id); toast(`Campaign ${id} dihapus`, 'success'); rerender(); }
   });
 }
 
@@ -2769,9 +2769,9 @@ function openCaseFormModal(caseObj = null) {
     onAction: (action, overlay) => {
       if (action !== 'submit') return;
       const data = Object.fromEntries(new FormData(overlay.querySelector('#case-form')).entries());
-      if (!data.customerName || !data.zoneId) { toast('Customer and zone are required', 'error'); return false; }
-      if (isEdit) { State.updateCase(caseObj.id, data); toast(`Case ${caseObj.id} updated`, 'success'); }
-      else { const c = State.createCase(data); toast(`Case ${c.id} opened`, 'success'); }
+      if (!data.customerName || !data.zoneId) { toast('Pelanggan dan zona wajib diisi', 'error'); return false; }
+      if (isEdit) { State.updateCase(caseObj.id, data); toast(`Kasus ${caseObj.id} tersimpan`, 'success'); }
+      else { const c = State.createCase(data); toast(`Kasus ${c.id} dibuka`, 'success'); }
       rerender();
       return true;
     }
@@ -2803,9 +2803,9 @@ function openCampaignFormModal(campaign = null) {
     onAction: (action, overlay) => {
       if (action !== 'submit') return;
       const data = Object.fromEntries(new FormData(overlay.querySelector('#campaign-form')).entries());
-      if (!data.name) { toast('Name is required', 'error'); return false; }
-      if (isEdit) { State.updateCampaign(campaign.id, data); toast(`Campaign updated`, 'success'); }
-      else { State.createCampaign(data); toast(`Campaign created`, 'success'); }
+      if (!data.name) { toast('Nama wajib diisi', 'error'); return false; }
+      if (isEdit) { State.updateCampaign(campaign.id, data); toast(`Campaign tersimpan`, 'success'); }
+      else { State.createCampaign(data); toast(`Campaign berhasil dibuat`, 'success'); }
       rerender();
       return true;
     }
@@ -2856,9 +2856,9 @@ function openZoneFormModal(zone = null) {
       data.billedVolume = Number(data.billedVolume);
       data.avgPressure = Number(data.avgPressure);
       data.baselineMNF = Number(data.baselineMNF);
-      if (!data.name || !data.inputVolume) { toast('Name and input volume are required', 'error'); return false; }
-      if (isEdit) { State.updateZone(zone.id, data); toast(`Zone ${zone.id} updated`, 'success'); }
-      else { const z = State.createZone(data); toast(`Zone ${z.id} created`, 'success'); }
+      if (!data.name || !data.inputVolume) { toast('Nama dan volume input wajib diisi', 'error'); return false; }
+      if (isEdit) { State.updateZone(zone.id, data); toast(`Zone ${zone.id} tersimpan`, 'success'); }
+      else { const z = State.createZone(data); toast(`Zone ${z.id} berhasil dibuat`, 'success'); }
       rerender();
       return true;
     }
@@ -2869,10 +2869,10 @@ function deleteZone(id) {
   const z = NRW.getZone(id);
   if (!z) return;
   confirm({
-    title: 'Delete zone?',
-    message: `<strong>${z.name}</strong> (${z.id}) and its ${z.customers.toLocaleString()} customers and ${z.sensors} sensors will lose their zone association. This cannot be undone.`,
-    confirmLabel: 'Delete zone',
-    onConfirm: () => { State.deleteZone(id); toast(`Zone ${id} deleted`, 'success'); closeDrawer(); rerender(); }
+    title: 'Hapus zona ini?',
+    message: `<strong>${z.name}</strong> (${z.id}) and its ${z.customers.toLocaleString()} customers and ${z.sensors} sensors will lose their zone association. Tindakan ini tidak bisa dibatalkan.`,
+    confirmLabel: 'Hapus zona',
+    onConfirm: () => { State.deleteZone(id); toast(`Zone ${id} dihapus`, 'success'); closeDrawer(); rerender(); }
   });
 }
 
@@ -2899,9 +2899,9 @@ function openSensorFormModal(sensor = null, prefill = {}) {
     onAction: (action, overlay) => {
       if (action !== 'submit') return;
       const data = Object.fromEntries(new FormData(overlay.querySelector('#sensor-form')).entries());
-      if (!data.type || !data.zoneId || !data.location) { toast('Type, zone, and location are required', 'error'); return false; }
-      if (isEdit) { State.updateSensor(sensor.id, data); toast(`Sensor ${sensor.id} updated`, 'success'); }
-      else { const s = State.createSensor(data); toast(`Sensor ${s.id} registered`, 'success'); }
+      if (!data.type || !data.zoneId || !data.location) { toast('Tipe, zona, dan lokasi wajib diisi', 'error'); return false; }
+      if (isEdit) { State.updateSensor(sensor.id, data); toast(`Sensor ${sensor.id} tersimpan`, 'success'); }
+      else { const s = State.createSensor(data); toast(`Sensor ${s.id} berhasil didaftarkan`, 'success'); }
       rerender();
       return true;
     }
@@ -2912,10 +2912,10 @@ function deleteSensor(id) {
   const s = NRW.getSensor(id);
   if (!s) return;
   confirm({
-    title: 'Delete sensor?',
-    message: `Sensor <strong>${s.id}</strong> (${s.type} at ${s.location}, ${s.zoneName}) will be removed from the registry and its device association.`,
-    confirmLabel: 'Delete sensor',
-    onConfirm: () => { State.deleteSensor(id); toast(`Sensor ${id} deleted`, 'success'); closeDrawer(); rerender(); }
+    title: 'Hapus sensor ini?',
+    message: `Sensor <strong>${s.id}</strong> (${s.type} at ${s.location}, ${s.zoneName}) akan dihapus dari registry dan asosiasi device-nya.`,
+    confirmLabel: 'Hapus sensor',
+    onConfirm: () => { State.deleteSensor(id); toast(`Sensor ${id} dihapus`, 'success'); closeDrawer(); rerender(); }
   });
 }
 
@@ -2949,9 +2949,9 @@ function openDeviceFormModal(device = null) {
     onAction: (action, overlay) => {
       if (action !== 'submit') return;
       const data = Object.fromEntries(new FormData(overlay.querySelector('#device-form')).entries());
-      if (!data.modelKey || !data.zoneId || !data.location) { toast('Model, zone, and location are required', 'error'); return false; }
-      if (isEdit) { State.updateDevice(device.id, data); toast(`Device ${device.id} updated`, 'success'); }
-      else { const d = State.createDevice(data); toast(`Device ${d.id} registered`, 'success'); }
+      if (!data.modelKey || !data.zoneId || !data.location) { toast('Model, zona, dan lokasi wajib diisi', 'error'); return false; }
+      if (isEdit) { State.updateDevice(device.id, data); toast(`Device ${device.id} tersimpan`, 'success'); }
+      else { const d = State.createDevice(data); toast(`Device ${d.id} berhasil didaftarkan`, 'success'); }
       rerender();
       return true;
     }
@@ -2962,10 +2962,10 @@ function deleteDevice(id) {
   const d = NRW.getDevice(id);
   if (!d) return;
   confirm({
-    title: 'Delete device?',
-    message: `Device <strong>${d.id}</strong> (${d.model}, ${d.location}) will be removed. Its ${d.sensorIds.length} connected sensors will become orphaned.`,
-    confirmLabel: 'Delete device',
-    onConfirm: () => { State.deleteDevice(id); toast(`Device ${id} deleted`, 'success'); closeDrawer(); rerender(); }
+    title: 'Hapus device ini?',
+    message: `Device <strong>${d.id}</strong> (${d.model}, ${d.location}) will be removed. Its ${d.sensorIds.length} sensor yang terhubung akan kehilangan asosiasi.`,
+    confirmLabel: 'Hapus device',
+    onConfirm: () => { State.deleteDevice(id); toast(`Device ${id} dihapus`, 'success'); closeDrawer(); rerender(); }
   });
 }
 
@@ -2991,9 +2991,9 @@ function openCustomerFormModal(customer = null) {
     onAction: (action, overlay) => {
       if (action !== 'submit') return;
       const data = Object.fromEntries(new FormData(overlay.querySelector('#customer-form')).entries());
-      if (!data.name || !data.zoneId) { toast('Name and zone are required', 'error'); return false; }
-      if (isEdit) { State.updateCustomer(customer.id, data); toast(`Customer ${customer.id} updated`, 'success'); }
-      else { const c = State.createCustomer(data); toast(`Customer ${c.id} added`, 'success'); }
+      if (!data.name || !data.zoneId) { toast('Nama dan zona wajib diisi', 'error'); return false; }
+      if (isEdit) { State.updateCustomer(customer.id, data); toast(`Pelanggan ${customer.id} tersimpan`, 'success'); }
+      else { const c = State.createCustomer(data); toast(`Pelanggan ${c.id} berhasil ditambahkan`, 'success'); }
       rerender();
       return true;
     }
@@ -3004,10 +3004,10 @@ function deleteCustomer(id) {
   const c = NRW.getCustomer(id);
   if (!c) return;
   confirm({
-    title: 'Delete customer?',
-    message: `Customer <strong>${c.name}</strong> (${c.id}) will be removed from the master. Their billing history will be retained in the audit log.`,
-    confirmLabel: 'Delete customer',
-    onConfirm: () => { State.deleteCustomer(id); toast(`Customer ${id} deleted`, 'success'); closeDrawer(); rerender(); }
+    title: 'Hapus pelanggan ini?',
+    message: `Customer <strong>${c.name}</strong> (${c.id}) akan dihapus dari master pelanggan. Riwayat billing tetap tersimpan di audit log.`,
+    confirmLabel: 'Hapus pelanggan',
+    onConfirm: () => { State.deleteCustomer(id); toast(`Pelanggan ${id} dihapus`, 'success'); closeDrawer(); rerender(); }
   });
 }
 
@@ -3032,9 +3032,9 @@ function openTeamFormModal(team = null) {
     onAction: (action, overlay) => {
       if (action !== 'submit') return;
       const data = Object.fromEntries(new FormData(overlay.querySelector('#team-form')).entries());
-      if (!data.name || !data.lead) { toast('Name and lead are required', 'error'); return false; }
-      if (isEdit) { State.updateTeam(team.id, data); toast(`Team ${team.id} updated`, 'success'); }
-      else { const t = State.createTeam(data); toast(`Team ${t.name} created`, 'success'); }
+      if (!data.name || !data.lead) { toast('Nama tim dan team lead wajib diisi', 'error'); return false; }
+      if (isEdit) { State.updateTeam(team.id, data); toast(`Tim ${team.id} tersimpan`, 'success'); }
+      else { const t = State.createTeam(data); toast(`Tim ${t.name} berhasil dibuat`, 'success'); }
       rerender();
       return true;
     }
@@ -3045,10 +3045,10 @@ function deleteTeam(id) {
   const t = NRW.TEAMS.find(x => x.id === id);
   if (!t) return;
   confirm({
-    title: 'Delete team?',
-    message: `Team <strong>${t.name}</strong> (${t.id}) will be deleted. Any work orders currently assigned to this team will keep the assignee name but the team profile will be gone.`,
-    confirmLabel: 'Delete team',
-    onConfirm: () => { State.deleteTeam(id); toast(`Team ${id} deleted`, 'success'); closeDrawer(); rerender(); }
+    title: 'Hapus tim ini?',
+    message: `Team <strong>${t.name}</strong> (${t.id}) will be deleted. Any work orders yang saat ini di-assign ke tim ini akan tetap menampilkan nama, tetapi profil tim akan hilang.`,
+    confirmLabel: 'Hapus tim',
+    onConfirm: () => { State.deleteTeam(id); toast(`Tim ${id} dihapus`, 'success'); closeDrawer(); rerender(); }
   });
 }
 
@@ -3079,7 +3079,7 @@ function openEditWOModal(woId) {
       if (action !== 'submit') return;
       const data = Object.fromEntries(new FormData(overlay.querySelector('#ewo-form')).entries());
       State.updateWorkOrder(w.id, data);
-      toast(`Work order ${w.id} updated`, 'success');
+      toast(`Work order ${w.id} tersimpan`, 'success');
       rerender();
       return true;
     }
@@ -3090,10 +3090,10 @@ function deleteWO(id) {
   const w = NRW.getWorkOrder(id);
   if (!w) return;
   confirm({
-    title: 'Cancel work order?',
-    message: `<strong>${w.title}</strong> (${w.id}) will be removed from the queue. This is logged in the activity feed.`,
-    confirmLabel: 'Cancel WO',
-    onConfirm: () => { State.deleteWorkOrder(id); toast(`Work order ${id} cancelled`, 'success'); closeDrawer(); rerender(); }
+    title: 'Batalkan work order ini?',
+    message: `<strong>${w.title}</strong> (${w.id}) akan dihapus dari antrian. Aksi ini dicatat di activity feed.`,
+    confirmLabel: 'Batalkan WO',
+    onConfirm: () => { State.deleteWorkOrder(id); toast(`Work order ${id} dibatalkan`, 'success'); closeDrawer(); rerender(); }
   });
 }
 

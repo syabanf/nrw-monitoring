@@ -270,6 +270,14 @@ export const classificationColor = c => ({ Critical: '#dc2626', High: '#f97316',
 export const severityColor = s => ({ critical: '#dc2626', high: '#f97316', medium: '#f59e0b', low: '#10b981' }[s] || '#94a3b8');
 export const statusColor = s => ({ Draft: '#94a3b8', Assigned: '#3b82f6', InProgress: '#f59e0b', PendingEvidence: '#a855f7', Completed: '#10b981', Verified: '#059669', Rejected: '#ef4444', Closed: '#64748b' }[s] || '#94a3b8');
 
+// Humanise camelCase / PascalCase / snake_case status strings for display.
+// "InProgress" → "In progress", "WrittenOff" → "Written off", "zero_consumption" → "Zero consumption"
+export function formatStatus(s) {
+  if (!s) return '';
+  const spaced = String(s).replace(/([a-z])([A-Z])/g, '$1 $2').replace(/_/g, ' ');
+  return spaced.charAt(0).toUpperCase() + spaced.slice(1).toLowerCase();
+}
+
 export function timeAgo(iso) {
   const d = new Date(iso);
   const now = new Date('2026-06-02T09:00:00');
