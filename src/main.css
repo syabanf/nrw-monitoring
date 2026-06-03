@@ -246,6 +246,38 @@
 .animate-spin { animation: spin 0.9s linear infinite; }
 @keyframes spin { from { transform: rotate(0); } to { transform: rotate(360deg); } }
 
+/* Sidebar collapse */
+.app-shell { transition: grid-template-columns 0.2s ease; }
+.app-shell.sb-collapsed { grid-template-columns: 64px 1fr !important; }
+.app-shell.sb-collapsed .brand-text,
+.app-shell.sb-collapsed .nav-section-label,
+.app-shell.sb-collapsed .nav-label,
+.app-shell.sb-collapsed .nav-badge,
+.app-shell.sb-collapsed .user-text { display: none; }
+.app-shell.sb-collapsed .brand-area { justify-content: center; padding-left: 0; padding-right: 0; }
+.app-shell.sb-collapsed .nav-item { justify-content: center; padding-left: 0; padding-right: 0; }
+.app-shell.sb-collapsed .nav-section { padding-bottom: 6px; }
+.app-shell.sb-collapsed .user-chip { justify-content: center; }
+.app-shell.sb-collapsed .nav-icon { opacity: 1; }
+
+/* Floating help button */
+.fab-help {
+  @apply fixed bottom-5 left-5 z-[90] w-10 h-10 rounded-full bg-sky-500 text-white shadow-xl grid place-items-center hover:bg-sky-600 transition-colors cursor-pointer;
+}
+
+/* Help/shortcut modal styling */
+.shortcut-key { @apply inline-block min-w-[22px] px-1.5 py-0.5 bg-slate-100 border border-slate-200 rounded text-[10px] text-slate-700 font-mono text-center; }
+.shortcut-row { @apply flex items-center justify-between py-2 border-b border-slate-100 last:border-0; }
+
+/* Welcome banner */
+.welcome-banner {
+  @apply bg-gradient-to-r from-sky-50 via-emerald-50 to-amber-50 border border-sky-200 rounded-lg p-4 flex items-start gap-3.5 relative;
+}
+
+/* Page hero / intro */
+.page-intro { @apply flex items-center gap-3 px-4 py-3 bg-white border border-slate-200 rounded-lg shadow-sm; }
+.page-intro-icon { @apply w-10 h-10 rounded-lg bg-sky-100 text-sky-600 grid place-items-center shrink-0; }
+
 /* Login page is full-screen, not subject to print rules above */
 .quick-user code { font-family: 'SF Mono', Menlo, Monaco, monospace; }
 

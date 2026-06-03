@@ -24,7 +24,7 @@ const icons = {
   Pencil, Trash2, Save, CirclePlus, PenLine, Wrench,
   Clock, User, Users, ListChecks, Cpu, MessageSquare, Paperclip, Send,
   CalendarDays, Briefcase, Network, Hammer, Bookmark, Star, MoreHorizontal,
-  History, Layers, Printer, Building2, Home, ShieldCheck,
+  History, Layers, Printer, Building2, Home, ShieldCheck, PanelLeft,
   Sun, Moon, Square, Triangle, Circle: CircleIcon,
   EyeOff, LogOut, LogIn, Lock, Mail, KeyRound
 };

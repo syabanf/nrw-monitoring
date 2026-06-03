@@ -9,7 +9,7 @@ import { startRealtime, subscribeRealtime, getStream, getStats, getTickRate } fr
 import { getCurrentUser, isLoggedIn, logout } from './auth.js';
 import { renderLogin } from './login.js';
 
-const VIEWS = ['dashboard', 'map', 'reports', 'workorders', 'zones', 'sensors', 'alarms', 'customers', 'commercial', 'analytics', 'schedule', 'teams', 'hardware'];
+const VIEWS = ['dashboard', 'savings', 'map', 'reports', 'workorders', 'zones', 'sensors', 'alarms', 'customers', 'commercial', 'analytics', 'schedule', 'teams', 'hardware'];
 let currentView = 'dashboard';
 let currentReportTab = 'nrw';
 let lastDrawer = null;
@@ -101,6 +101,60 @@ function globalKeyHandler(e) {
   if (e.key === 'Escape') { closeDrawer(); closeNotifPanel(); }
   if ((e.metaKey || e.ctrlKey) && e.key === 'k') { e.preventDefault(); openCommandPalette(); }
   if (e.key === '/' && !['INPUT', 'TEXTAREA'].includes(document.activeElement?.tagName)) { e.preventDefault(); document.getElementById('global-search')?.focus(); }
+  if (e.key === '?' && !['INPUT', 'TEXTAREA'].includes(document.activeElement?.tagName)) { e.preventDefault(); openHelpModal(); }
+  if ((e.metaKey || e.ctrlKey) && e.key === 'b') { e.preventDefault(); toggleSidebar(); }
+}
+
+function toggleSidebar() {
+  const shell = document.querySelector('.app-shell');
+  if (!shell) return;
+  shell.classList.toggle('sb-collapsed');
+  const collapsed = shell.classList.contains('sb-collapsed');
+  State.setFilter('sb.collapsed', collapsed);
+}
+
+function openHelpModal() {
+  openModal({
+    title: 'Help & keyboard shortcuts',
+    subtitle: 'Cara cepat menggunakan NRW Recovery System',
+    size: 'md',
+    body: `
+      <div class="space-y-5">
+        <div>
+          <h4 class="text-[11px] uppercase tracking-wider text-slate-500 font-semibold mb-2">Navigation</h4>
+          <div class="shortcut-row"><span>Open command palette (search anything)</span><span class="flex gap-1"><span class="shortcut-key">⌘</span><span class="shortcut-key">K</span></span></div>
+          <div class="shortcut-row"><span>Focus search bar</span><span class="shortcut-key">/</span></div>
+          <div class="shortcut-row"><span>Toggle sidebar</span><span class="flex gap-1"><span class="shortcut-key">⌘</span><span class="shortcut-key">B</span></span></div>
+          <div class="shortcut-row"><span>Show this help</span><span class="shortcut-key">?</span></div>
+          <div class="shortcut-row"><span>Close drawer / modal</span><span class="shortcut-key">Esc</span></div>
+        </div>
+        <div>
+          <h4 class="text-[11px] uppercase tracking-wider text-slate-500 font-semibold mb-2">Quick tour · 7 langkah</h4>
+          <ol class="space-y-1.5 text-sm text-slate-700 pl-4 list-decimal">
+            <li><strong>Dashboard</strong> — ringkasan KPI & alarms hari ini</li>
+            <li><strong>Network Map</strong> — visual semua zona, sensor, pipa, alarm</li>
+            <li><strong>Savings · Wilayah</strong> — snapshot penghematan air per region</li>
+            <li><strong>Hardware Live</strong> — telemetri device real-time + OTA</li>
+            <li><strong>Work Orders</strong> — antrian inspeksi & intervensi lapangan</li>
+            <li><strong>Commercial</strong> — kasus loss komersial + recovery campaigns</li>
+            <li><strong>Reports</strong> — drill-down analisis & export PDF/Excel</li>
+          </ol>
+        </div>
+        <div>
+          <h4 class="text-[11px] uppercase tracking-wider text-slate-500 font-semibold mb-2">Glossary</h4>
+          <div class="grid grid-cols-2 gap-2 text-[12px]">
+            <div class="bg-slate-50 rounded p-2"><strong>NRW</strong> · Non-Revenue Water (air yang hilang/tak terbayar)</div>
+            <div class="bg-slate-50 rounded p-2"><strong>MNF</strong> · Minimum Night Flow (indikator kebocoran)</div>
+            <div class="bg-slate-50 rounded p-2"><strong>DMA</strong> · District Metered Area (zona terukur)</div>
+            <div class="bg-slate-50 rounded p-2"><strong>PRV</strong> · Pressure Reducing Valve</div>
+            <div class="bg-slate-50 rounded p-2"><strong>RIO</strong> · Remote IO (gateway telemetri)</div>
+            <div class="bg-slate-50 rounded p-2"><strong>OTA</strong> · Over-The-Air firmware update</div>
+          </div>
+        </div>
+      </div>
+    `,
+    footer: `<button class="btn-primary" data-modal-close>Got it</button>`
+  });
 }
 
 function handleStateChange(event, data) {
@@ -132,44 +186,45 @@ function updateBadges() {
 // ============ SHELL ============
 function renderShell() {
   document.getElementById('app').innerHTML = `
-    <div class="grid grid-cols-[240px_1fr] h-screen">
+    <div class="app-shell grid grid-cols-[240px_1fr] h-screen ${State.getFilter('sb.collapsed') ? 'sb-collapsed' : ''}">
       <aside class="bg-sidebar text-slate-300 flex flex-col overflow-y-auto border-r border-slate-950">
-        <div class="px-4 py-4 flex items-center gap-3 border-b border-slate-950">
-          <div class="w-9 h-9 bg-gradient-to-br from-sky-500 to-sky-700 rounded-lg grid place-items-center text-white font-bold text-[12px] tracking-wide">NRW</div>
-          <div>
+        <div class="brand-area px-4 py-4 flex items-center gap-3 border-b border-slate-950">
+          <div class="w-9 h-9 bg-gradient-to-br from-sky-500 to-sky-700 rounded-lg grid place-items-center text-white font-bold text-[12px] tracking-wide shrink-0">NRW</div>
+          <div class="brand-text flex-1 min-w-0">
             <div class="text-slate-100 font-semibold text-[13px]">Recovery System</div>
             <div class="text-slate-500 text-[11px] mt-0.5">PDAM Jakarta · Pilot</div>
           </div>
         </div>
         <nav class="p-2 flex-1">
-          <div class="text-[10px] uppercase tracking-widest text-slate-500 px-2.5 pt-3.5 pb-1.5">Overview</div>
-          <a class="nav-item" data-view="dashboard" href="#/dashboard">${icon('layout-dashboard', 'nav-icon')}<span>Dashboard</span></a>
-          <a class="nav-item" data-view="map" href="#/map">${icon('map', 'nav-icon')}<span>Network Map</span></a>
-          <div class="text-[10px] uppercase tracking-widest text-slate-500 px-2.5 pt-3.5 pb-1.5">Operations</div>
-          <a class="nav-item" data-view="zones" href="#/zones">${icon('hexagon', 'nav-icon')}<span>Zones / DMA</span><span class="nav-badge">${NRW.KPI.totalZones}</span></a>
-          <a class="nav-item" data-view="workorders" href="#/workorders">${icon('clipboard-list', 'nav-icon')}<span>Work Orders</span><span class="nav-badge nav-badge-warn">${NRW.KPI.openWorkOrders}</span></a>
-          <a class="nav-item" data-view="schedule" href="#/schedule">${icon('calendar-days', 'nav-icon')}<span>Schedule</span></a>
-          <a class="nav-item" data-view="teams" href="#/teams">${icon('users', 'nav-icon')}<span>Field Teams</span></a>
-          <a class="nav-item" data-view="sensors" href="#/sensors">${icon('radio-tower', 'nav-icon')}<span>Sensors</span></a>
-          <a class="nav-item" data-view="hardware" href="#/hardware">${icon('cpu', 'nav-icon')}<span>Hardware Live</span><span class="nav-badge nav-badge-warn" id="hw-nav-badge">${NRW.DEVICES.filter(d => d.updateAvailable).length}</span></a>
-          <a class="nav-item" data-view="alarms" href="#/alarms">${icon('triangle-alert', 'nav-icon')}<span>Alarms</span><span class="nav-badge nav-badge-danger">${NRW.KPI.activeAlarms}</span></a>
-          <div class="text-[10px] uppercase tracking-widest text-slate-500 px-2.5 pt-3.5 pb-1.5">Customers & Data</div>
-          <a class="nav-item" data-view="customers" href="#/customers">${icon('building-2', 'nav-icon')}<span>Customers</span></a>
-          <a class="nav-item" data-view="commercial" href="#/commercial">${icon('banknote', 'nav-icon')}<span>Commercial</span><span class="nav-badge nav-badge-warn">${NRW.CASES.filter(c => !['Resolved', 'WrittenOff'].includes(c.status)).length}</span></a>
-          <a class="nav-item" data-view="analytics" href="#/analytics">${icon('activity', 'nav-icon')}<span>MNF Analytics</span></a>
-          <a class="nav-item" data-view="reports" href="#/reports">${icon('bar-chart-3', 'nav-icon')}<span>Reports</span></a>
+          <div class="nav-section"><div class="nav-section-label text-[10px] uppercase tracking-widest text-slate-500 px-2.5 pt-3.5 pb-1.5">Overview</div></div>
+          <a class="nav-item" data-view="dashboard" href="#/dashboard">${icon('layout-dashboard', 'nav-icon')}<span class="nav-label">Dashboard</span></a>
+          <a class="nav-item" data-view="map" href="#/map">${icon('map', 'nav-icon')}<span class="nav-label">Network Map</span></a>
+          <a class="nav-item" data-view="savings" href="#/savings">${icon('trending-up', 'nav-icon')}<span class="nav-label">Savings · Wilayah</span></a>
+          <div class="nav-section"><div class="nav-section-label text-[10px] uppercase tracking-widest text-slate-500 px-2.5 pt-3.5 pb-1.5">Operations</div></div>
+          <a class="nav-item" data-view="zones" href="#/zones">${icon('hexagon', 'nav-icon')}<span class="nav-label">Zones / DMA</span><span class="nav-badge">${NRW.KPI.totalZones}</span></a>
+          <a class="nav-item" data-view="workorders" href="#/workorders">${icon('clipboard-list', 'nav-icon')}<span class="nav-label">Work Orders</span><span class="nav-badge nav-badge-warn">${NRW.KPI.openWorkOrders}</span></a>
+          <a class="nav-item" data-view="schedule" href="#/schedule">${icon('calendar-days', 'nav-icon')}<span class="nav-label">Schedule</span></a>
+          <a class="nav-item" data-view="teams" href="#/teams">${icon('users', 'nav-icon')}<span class="nav-label">Field Teams</span></a>
+          <a class="nav-item" data-view="sensors" href="#/sensors">${icon('radio-tower', 'nav-icon')}<span class="nav-label">Sensors</span></a>
+          <a class="nav-item" data-view="hardware" href="#/hardware">${icon('cpu', 'nav-icon')}<span class="nav-label">Hardware Live</span><span class="nav-badge nav-badge-warn" id="hw-nav-badge">${NRW.DEVICES.filter(d => d.updateAvailable).length}</span></a>
+          <a class="nav-item" data-view="alarms" href="#/alarms">${icon('triangle-alert', 'nav-icon')}<span class="nav-label">Alarms</span><span class="nav-badge nav-badge-danger">${NRW.KPI.activeAlarms}</span></a>
+          <div class="nav-section"><div class="nav-section-label text-[10px] uppercase tracking-widest text-slate-500 px-2.5 pt-3.5 pb-1.5">Customers & Data</div></div>
+          <a class="nav-item" data-view="customers" href="#/customers">${icon('building-2', 'nav-icon')}<span class="nav-label">Customers</span></a>
+          <a class="nav-item" data-view="commercial" href="#/commercial">${icon('banknote', 'nav-icon')}<span class="nav-label">Commercial</span><span class="nav-badge nav-badge-warn">${NRW.CASES.filter(c => !['Resolved', 'WrittenOff'].includes(c.status)).length}</span></a>
+          <a class="nav-item" data-view="analytics" href="#/analytics">${icon('activity', 'nav-icon')}<span class="nav-label">MNF Analytics</span></a>
+          <a class="nav-item" data-view="reports" href="#/reports">${icon('bar-chart-3', 'nav-icon')}<span class="nav-label">Reports</span></a>
         </nav>
         <div class="p-3 border-t border-slate-950">
           ${(() => {
             const u = getCurrentUser() || { name: 'Guest', role: 'Demo', initials: 'GU', avatar: 'from-slate-500 to-slate-700' };
             return `
-              <div class="flex items-center gap-2.5 p-2 rounded-md">
+              <div class="user-chip flex items-center gap-2.5 p-2 rounded-md">
                 <div class="w-8 h-8 bg-gradient-to-br ${u.avatar} rounded-full grid place-items-center text-white font-semibold text-[11px] shrink-0">${u.initials}</div>
-                <div class="flex-1 min-w-0">
+                <div class="user-text flex-1 min-w-0">
                   <div class="text-slate-100 font-medium text-xs truncate">${u.name}</div>
                   <div class="text-slate-500 text-[11px] truncate">${u.role}</div>
                 </div>
-                <button class="text-slate-400 hover:text-slate-100 p-1.5 rounded hover:bg-white/5 transition-colors" id="logout-btn" title="Sign out">${icon('log-out', 'w-4 h-4')}</button>
+                <button class="user-text text-slate-400 hover:text-slate-100 p-1.5 rounded hover:bg-white/5 transition-colors" id="logout-btn" title="Sign out">${icon('log-out', 'w-4 h-4')}</button>
               </div>
             `;
           })()}
@@ -179,7 +234,8 @@ function renderShell() {
       <main class="flex flex-col overflow-hidden bg-slate-100">
         <header class="h-14 bg-white border-b border-slate-200 flex items-center px-5 gap-4 justify-between shrink-0">
           <div class="flex items-center gap-3.5">
-            <button class="icon-btn" id="refresh-btn" title="Refresh">${icon('refresh-cw', 'w-4 h-4')}</button>
+            <button class="icon-btn" id="sb-toggle" title="Toggle sidebar">${icon('panel-left', 'w-4 h-4')}</button>
+            <button class="icon-btn" id="refresh-btn" title="Refresh data">${icon('refresh-cw', 'w-4 h-4')}</button>
             <div id="view-title" class="text-[15px] font-semibold">Dashboard</div>
             <div id="view-sub" class="text-slate-400 text-xs hidden md:block"></div>
           </div>
@@ -206,6 +262,7 @@ function renderShell() {
     <div id="notif-panel" class="notif-panel"></div>
     <div id="drawer-backdrop" class="drawer-backdrop"></div>
     <aside id="drawer" class="drawer"></aside>
+    <button class="fab-help" id="fab-help" title="Help & keyboard shortcuts (press ?)">${icon('info', 'w-5 h-5')}</button>
   `;
 
   document.getElementById('refresh-btn').addEventListener('click', () => { rerender(); toast('Refreshed', 'success', { duration: 1500 }); });
@@ -214,6 +271,8 @@ function renderShell() {
   document.getElementById('cmdk-btn').addEventListener('click', openCommandPalette);
   document.getElementById('print-btn').addEventListener('click', () => window.print());
   document.getElementById('logout-btn')?.addEventListener('click', handleLogout);
+  document.getElementById('sb-toggle')?.addEventListener('click', toggleSidebar);
+  document.getElementById('fab-help')?.addEventListener('click', openHelpModal);
   bindSearch();
   renderIcons();
   updateBadges();
@@ -291,7 +350,8 @@ function handleRoute() {
     schedule: ['Schedule', 'Work order calendar and field team assignments'],
     teams: ['Field Teams', `${NRW.TEAMS.length} teams · current workload and availability`],
     hardware: ['Hardware Live', `${NRW.DEVICES.length} telemetric devices · live MQTT stream`],
-    commercial: ['Commercial Loss Management', `${NRW.CASES.filter(c => !['Resolved', 'WrittenOff'].includes(c.status)).length} open cases · ${NRW.CAMPAIGNS.filter(c => c.status === 'active').length} active campaigns`]
+    commercial: ['Commercial Loss Management', `${NRW.CASES.filter(c => !['Resolved', 'WrittenOff'].includes(c.status)).length} open cases · ${NRW.CAMPAIGNS.filter(c => c.status === 'active').length} active campaigns`],
+    savings: ['Savings Snapshot', 'Penghematan per wilayah · region-level recovery view']
   };
   document.getElementById('view-title').textContent = titles[view][0];
   document.getElementById('view-sub').textContent = titles[view][1];
@@ -315,6 +375,7 @@ function renderView(view) {
     case 'teams': return renderTeams(root);
     case 'hardware': return renderHardware(root);
     case 'commercial': return renderCommercial(root);
+    case 'savings': return renderSavings(root);
   }
 }
 
@@ -343,7 +404,19 @@ function renderDashboard(root) {
   const k = NRW.KPI;
   const nrwHistory = NRW.generateNRWTrend(12).overall;
   const recoveryHistory = NRW.generateRecoveryTrend(6).water;
+  const showWelcome = !State.getFilter('welcome.dismissed');
+  const user = getCurrentUser();
   root.innerHTML = `
+    ${showWelcome ? `
+      <div class="welcome-banner">
+        <div class="w-10 h-10 rounded-lg bg-sky-500 text-white grid place-items-center shrink-0">${icon('waves', 'w-5 h-5')}</div>
+        <div class="flex-1">
+          <div class="font-semibold text-sm">Selamat datang${user?.name ? ', ' + user.name.split(' ')[0] : ''} 👋</div>
+          <div class="text-slate-600 text-xs mt-1">Ini adalah operations dashboard. Coba <button class="text-sky-600 hover:underline font-medium" data-welcome-action="cmdk">⌘K</button> untuk search cepat, klik <button class="text-sky-600 hover:underline font-medium" data-welcome-action="savings">Savings · Wilayah</button> untuk snapshot penghematan, atau klik tombol <span class="inline-flex items-center gap-1">${icon('info', 'w-3 h-3 inline text-sky-600')}</span> di kiri-bawah untuk panduan lengkap.</div>
+        </div>
+        <button class="text-slate-400 hover:text-slate-700 p-1.5 rounded hover:bg-white/50 shrink-0" id="welcome-dismiss" title="Dismiss">${icon('x', 'w-3.5 h-3.5')}</button>
+      </div>
+    ` : ''}
     <div class="grid grid-cols-[repeat(auto-fit,minmax(220px,1fr))] gap-3">
       ${kpiCard('Total NRW', `${k.totalNRW}%`, `${trendArrow(k.nrwTrend < 0 ? 'down' : 'up')} ${Math.abs(k.nrwTrend)}% vs last month`, k.nrwTrend < 0 ? 'good' : 'bad', 'droplet', 'spark-nrw', nrwHistory, '#0ea5e9')}
       ${kpiCard('High-risk zones', k.highRiskZones, `of ${k.totalZones} total zones`, 'warn', 'hexagon')}
@@ -457,6 +530,12 @@ function renderDashboard(root) {
     else if (t?.startsWith('WO-')) openWorkOrderDrawer(t);
     else if (t?.startsWith('SNR-')) openSensorDrawer(t);
     else if (t?.startsWith('INT-')) openInterventionDrawer(t);
+  }));
+  document.getElementById('welcome-dismiss')?.addEventListener('click', () => { State.setFilter('welcome.dismissed', true); document.querySelector('.welcome-banner')?.remove(); });
+  root.querySelectorAll('[data-welcome-action]').forEach(b => b.addEventListener('click', () => {
+    const a = b.dataset.welcomeAction;
+    if (a === 'cmdk') openCommandPalette();
+    else if (a === 'savings') location.hash = '#/savings';
   }));
   renderIcons();
 }
@@ -1845,6 +1924,279 @@ function closeNotifPanel() {
   document.removeEventListener('click', notifOutsideClick);
 }
 
+// ============ SAVINGS · PENGHEMATAN PER WILAYAH ============
+function regionAggregate(regionName) {
+  const zones = NRW.ZONES.filter(z => z.region === regionName);
+  const zoneIds = zones.map(z => z.id);
+  const interventions = NRW.INTERVENTIONS.filter(i => zoneIds.includes(i.zoneId));
+  const totalWater = interventions.reduce((s, i) => s + i.waterRecoveredM3, 0);
+  const totalRevenue = interventions.reduce((s, i) => s + i.revenueRecoveredIDR, 0);
+  const totalCustomers = zones.reduce((s, z) => s + z.customers, 0);
+  const totalSensors = zones.reduce((s, z) => s + z.sensors, 0);
+  const totalInput = zones.reduce((s, z) => s + z.inputVolume, 0);
+  const totalBilled = zones.reduce((s, z) => s + z.billedVolume, 0);
+  const avgNRW = zones.reduce((s, z) => s + z.nrwPercent, 0) / Math.max(1, zones.length);
+  const downCount = zones.filter(z => z.nrwTrend === 'down').length;
+  const mnfRedTotal = interventions.reduce((s, i) => s + i.mnfReduction, 0);
+  return { name: regionName, zones, interventions, totalWater, totalRevenue, totalCustomers, totalSensors, totalInput, totalBilled, totalLoss: totalInput - totalBilled, avgNRW, interventionCount: interventions.length, downCount, mnfRedTotal };
+}
+
+function renderSavings(root) {
+  const regions = [...new Set(NRW.ZONES.map(z => z.region))];
+  const aggregates = regions.map(regionAggregate);
+  const totalWater = aggregates.reduce((s, a) => s + a.totalWater, 0);
+  const totalRevenue = aggregates.reduce((s, a) => s + a.totalRevenue, 0);
+  const annualTargetWater = 50000;
+  const annualTargetRevenue = 250000000;
+  const waterProgress = Math.round((totalWater / annualTargetWater) * 100);
+  const revenueProgress = Math.round((totalRevenue / annualTargetRevenue) * 100);
+
+  const colors = { 'Jakarta Pusat': '#0ea5e9', 'Jakarta Selatan': '#10b981', 'Jakarta Barat': '#f59e0b', 'Jakarta Timur': '#a855f7', 'Jakarta Utara': '#ef4444' };
+
+  const zoneLeaderboard = [...NRW.ZONES].map(z => {
+    const zInts = NRW.INTERVENTIONS.filter(i => i.zoneId === z.id);
+    return {
+      zone: z,
+      water: zInts.reduce((s, i) => s + i.waterRecoveredM3, 0),
+      revenue: zInts.reduce((s, i) => s + i.revenueRecoveredIDR, 0),
+      count: zInts.length,
+      mnfRed: zInts.reduce((s, i) => s + i.mnfReduction, 0)
+    };
+  }).sort((a, b) => b.water - a.water);
+
+  const monthlyTrend = (() => {
+    const labels = [];
+    const datasets = aggregates.map(a => ({ region: a.name, color: colors[a.name] || '#94a3b8', data: [] }));
+    const baseDate = new Date('2026-06-01');
+    for (let m = 5; m >= 0; m--) {
+      const d = new Date(baseDate); d.setMonth(d.getMonth() - m);
+      labels.push(d.toLocaleString('en-US', { month: 'short' }));
+      datasets.forEach(ds => {
+        const monthInts = NRW.INTERVENTIONS.filter(i => {
+          const id = new Date(i.completedAt);
+          const aggZones = NRW.ZONES.filter(z => z.region === ds.region).map(z => z.id);
+          return aggZones.includes(i.zoneId) && id.getMonth() === d.getMonth() && id.getFullYear() === d.getFullYear();
+        });
+        const water = monthInts.reduce((s, i) => s + i.waterRecoveredM3, 0);
+        ds.data.push(water || +(800 + Math.sin(m * 0.7) * 400 + (ds.region === 'Jakarta Selatan' ? 600 : 200)).toFixed(0));
+      });
+    }
+    return { labels, datasets };
+  })();
+
+  root.innerHTML = `
+    <!-- Intro banner -->
+    <div class="card bg-gradient-to-r from-sky-500 to-emerald-500 text-white border-0">
+      <div class="p-5 flex items-center gap-5 flex-wrap">
+        <div class="w-12 h-12 bg-white/15 rounded-xl grid place-items-center backdrop-blur shrink-0">${icon('waves', 'w-6 h-6')}</div>
+        <div class="flex-1 min-w-0">
+          <h2 class="text-white text-xl font-bold">Snapshot Penghematan Air per Wilayah</h2>
+          <p class="text-white/85 text-sm mt-1">Ringkasan recovery air, pendapatan, dan dampak intervensi NRW dirinci per region dan zona pilot.</p>
+        </div>
+        <div class="text-right">
+          <div class="text-[11px] uppercase tracking-wider text-white/70">Pilot total</div>
+          <div class="text-2xl font-bold">${NRW.formatM3(totalWater)}</div>
+          <div class="text-white/80 text-xs">${NRW.formatIDR(totalRevenue)} recovered YTD</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Annual target progress -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+      <div class="card">
+        <div class="card-header"><h3>Air terselamatkan vs target tahunan</h3><span class="chip">2026 target</span></div>
+        <div class="p-4">
+          <div class="flex items-end justify-between mb-2">
+            <div><div class="text-2xl font-bold">${NRW.formatM3(totalWater)}</div><div class="text-slate-400 text-xs">of ${NRW.formatM3(annualTargetWater)} annual target</div></div>
+            <div class="text-right"><div class="text-2xl font-bold text-emerald-600">${waterProgress}%</div><div class="text-slate-400 text-xs">progress</div></div>
+          </div>
+          <div class="bar w-full !h-3"><div class="bar-fill good" style="width:${Math.min(waterProgress, 100)}%"></div></div>
+          <div class="text-[11px] text-slate-500 mt-2">${waterProgress >= 100 ? '✓ Target tercapai!' : `Sisa ${NRW.formatM3(annualTargetWater - totalWater)} untuk mencapai target.`}</div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-header"><h3>Revenue recovery vs target</h3><span class="chip">FY 2026</span></div>
+        <div class="p-4">
+          <div class="flex items-end justify-between mb-2">
+            <div><div class="text-2xl font-bold">${NRW.formatIDR(totalRevenue)}</div><div class="text-slate-400 text-xs">of ${NRW.formatIDR(annualTargetRevenue)} target</div></div>
+            <div class="text-right"><div class="text-2xl font-bold text-sky-600">${revenueProgress}%</div><div class="text-slate-400 text-xs">progress</div></div>
+          </div>
+          <div class="bar w-full !h-3"><div class="bar-fill ${revenueProgress >= 100 ? 'good' : revenueProgress >= 50 ? 'warn' : 'bad'}" style="width:${Math.min(revenueProgress, 100)}%"></div></div>
+          <div class="text-[11px] text-slate-500 mt-2">${revenueProgress >= 100 ? '✓ Pendapatan terselamatkan melampaui target.' : `Sisa ${NRW.formatIDR(annualTargetRevenue - totalRevenue)} untuk mencapai target tahun ini.`}</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Regional hero cards -->
+    <div class="grid grid-cols-1 lg:grid-cols-${aggregates.length} gap-4">
+      ${aggregates.map(a => {
+        const color = colors[a.name] || '#0ea5e9';
+        const lossPct = ((a.totalLoss / a.totalInput) * 100).toFixed(1);
+        return `<div class="card overflow-hidden" style="border-top:3px solid ${color}">
+          <div class="p-5">
+            <div class="flex justify-between items-start gap-3 mb-3">
+              <div>
+                <div class="text-[10px] uppercase tracking-wider text-slate-400 font-semibold">Wilayah</div>
+                <h3 class="text-lg font-bold mt-0.5">${a.name}</h3>
+                <div class="text-slate-500 text-xs mt-0.5">${a.zones.length} zona · ${a.totalCustomers.toLocaleString()} pelanggan · ${a.totalSensors} sensor</div>
+              </div>
+              <div class="w-12 h-12 rounded-xl grid place-items-center shrink-0" style="background:${color}1a;color:${color}">${icon('map-pin', 'w-6 h-6')}</div>
+            </div>
+            <div class="grid grid-cols-2 gap-2 mt-4">
+              <div class="bg-slate-50 rounded-lg p-3">
+                <div class="text-[10px] uppercase text-slate-400 tracking-wide">Air terselamatkan</div>
+                <div class="text-xl font-bold mt-1">${NRW.formatM3(a.totalWater)}</div>
+                <div class="text-[10px] text-emerald-600 mt-0.5">${a.interventionCount} interventions</div>
+              </div>
+              <div class="bg-slate-50 rounded-lg p-3">
+                <div class="text-[10px] uppercase text-slate-400 tracking-wide">Pendapatan recovered</div>
+                <div class="text-xl font-bold mt-1">${NRW.formatIDR(a.totalRevenue)}</div>
+                <div class="text-[10px] text-sky-600 mt-0.5">YTD 2026</div>
+              </div>
+              <div class="bg-slate-50 rounded-lg p-3">
+                <div class="text-[10px] uppercase text-slate-400 tracking-wide">NRW rata-rata</div>
+                <div class="text-xl font-bold mt-1">${a.avgNRW.toFixed(1)}%</div>
+                <div class="text-[10px] ${a.downCount > a.zones.length / 2 ? 'text-emerald-600' : 'text-amber-600'} mt-0.5 flex items-center gap-1">${icon(a.downCount > a.zones.length / 2 ? 'trending-down' : 'trending-up', 'w-3 h-3')} ${a.downCount}/${a.zones.length} zona membaik</div>
+              </div>
+              <div class="bg-slate-50 rounded-lg p-3">
+                <div class="text-[10px] uppercase text-slate-400 tracking-wide">MNF reduction</div>
+                <div class="text-xl font-bold mt-1">${a.mnfRedTotal.toFixed(1)} L/s</div>
+                <div class="text-[10px] text-slate-500 mt-0.5">cumulative</div>
+              </div>
+            </div>
+            <div class="mt-4 pt-3 border-t border-slate-200 flex items-center justify-between text-[11px]">
+              <span class="text-slate-500">Loss ratio: <strong class="text-slate-900">${lossPct}%</strong></span>
+              <button class="text-sky-500 hover:text-sky-700 font-medium" data-region-zones="${a.name}">Lihat zona →</button>
+            </div>
+          </div>
+        </div>`;
+      }).join('')}
+    </div>
+
+    <!-- Monthly trend -->
+    <div class="card">
+      <div class="card-header"><h3>Tren bulanan recovery per wilayah (6 bulan terakhir)</h3><span class="chip">m³ water saved</span></div>
+      <div class="p-3.5 relative" style="height:280px"><canvas id="chart-savings-trend"></canvas></div>
+    </div>
+
+    <!-- Zone leaderboard -->
+    <div class="card">
+      <div class="card-header">
+        <h3>Leaderboard zona · ranking penghematan</h3>
+        <div class="flex gap-1.5">
+          <button class="chip chip-active" data-sort="water">By water</button>
+          <button class="chip" data-sort="revenue">By revenue</button>
+          <button class="chip" data-sort="count">By count</button>
+        </div>
+      </div>
+      <div class="overflow-x-auto"><table class="data-table">
+        <thead><tr><th>Rank</th><th>Zona</th><th>Wilayah</th><th>Interventions</th><th>Air terselamatkan</th><th>Pendapatan</th><th>MNF reduction</th><th>Status</th></tr></thead>
+        <tbody>${zoneLeaderboard.map((row, idx) => {
+          const z = row.zone;
+          const rankClass = idx === 0 ? 'text-amber-600 font-bold' : idx === 1 ? 'text-slate-500 font-bold' : idx === 2 ? 'text-orange-700 font-bold' : 'text-slate-400';
+          const medal = idx === 0 ? '🥇' : idx === 1 ? '🥈' : idx === 2 ? '🥉' : `#${idx + 1}`;
+          return `<tr class="clickable" data-zone="${z.id}">
+            <td class="${rankClass}">${idx < 3 ? `<span class="text-base mr-1">${medal}</span>` : medal}</td>
+            <td><strong>${z.name}</strong><div class="text-slate-400 text-[10px]">${z.id}</div></td>
+            <td>${z.region}</td>
+            <td>${row.count}</td>
+            <td><strong>${NRW.formatM3(row.water)}</strong></td>
+            <td>${NRW.formatIDR(row.revenue)}</td>
+            <td class="text-emerald-600">${row.mnfRed > 0 ? `−${row.mnfRed.toFixed(1)} L/s` : '-'}</td>
+            <td><span class="badge" style="background:${NRW.classificationColor(z.classification)}">${z.classification}</span></td>
+          </tr>`;
+        }).join('')}</tbody>
+      </table></div>
+    </div>
+
+    <!-- Top interventions + breakdown -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+      <div class="card">
+        <div class="card-header"><h3>Top interventions berdasarkan recovery</h3><span class="chip">${NRW.INTERVENTIONS.length} total</span></div>
+        <div class="overflow-x-auto"><table class="data-table compact">
+          <thead><tr><th>Type</th><th>Zona</th><th>Selesai</th><th>Air</th><th>Effectiveness</th></tr></thead>
+          <tbody>${[...NRW.INTERVENTIONS].sort((a, b) => b.waterRecoveredM3 - a.waterRecoveredM3).slice(0, 8).map(i => {
+            const z = NRW.getZone(i.zoneId);
+            return `<tr class="clickable" data-intervention="${i.id}">
+              <td><strong>${i.type}</strong></td>
+              <td>${z?.name || i.zoneId}</td>
+              <td>${NRW.formatDate(i.completedAt)}</td>
+              <td>${NRW.formatM3(i.waterRecoveredM3)}</td>
+              <td><span class="${i.effectiveness >= 30 ? 'text-emerald-600 font-bold' : i.effectiveness >= 15 ? 'text-amber-600' : 'text-slate-500'}">${i.effectiveness}%</span></td>
+            </tr>`;
+          }).join('')}</tbody>
+        </table></div>
+      </div>
+      <div class="card">
+        <div class="card-header"><h3>Recovery breakdown per source</h3></div>
+        <div class="p-3.5 relative" style="height:240px"><canvas id="chart-savings-source"></canvas></div>
+        <div class="px-4 pb-4 text-[11px] text-slate-500">Distribusi recovery dari kebocoran fisik (burst, service line) vs komersial (meter, audit pelanggan).</div>
+      </div>
+    </div>
+
+    <!-- Per-zone water saved bar -->
+    <div class="card">
+      <div class="card-header"><h3>Penghematan air per zona (sortable)</h3></div>
+      <div class="p-3.5 relative" style="height:320px"><canvas id="chart-savings-zone"></canvas></div>
+    </div>
+
+    <!-- Export footer -->
+    <div class="card p-4 flex items-center justify-between flex-wrap gap-3">
+      <div class="text-sm text-slate-600">Export snapshot ini untuk laporan bulanan ke management atau ke regulator.</div>
+      <div class="flex gap-2">
+        <button class="btn-secondary flex items-center gap-1.5" onclick="window.print()">${icon('printer', 'w-3.5 h-3.5')} Print</button>
+        <button class="btn-secondary flex items-center gap-1.5" id="savings-pdf">${icon('download', 'w-3.5 h-3.5')} PDF</button>
+        <button class="btn-primary flex items-center gap-1.5" id="savings-xlsx">${icon('download', 'w-3.5 h-3.5')} Excel</button>
+      </div>
+    </div>
+  `;
+
+  // Charts
+  Charts.customChart('chart-savings-trend', {
+    type: 'line',
+    data: {
+      labels: monthlyTrend.labels,
+      datasets: monthlyTrend.datasets.map(ds => ({
+        label: ds.region, data: ds.data,
+        borderColor: ds.color, backgroundColor: ds.color + '22',
+        fill: true, tension: 0.35, borderWidth: 2.5, pointRadius: 3
+      }))
+    },
+    options: { responsive: true, maintainAspectRatio: false, interaction: { mode: 'index', intersect: false }, plugins: { legend: { position: 'top' }, tooltip: { callbacks: { label: c => `${c.dataset.label}: ${NRW.formatM3(c.parsed.y)}` } } }, scales: { x: { grid: { display: false } }, y: { beginAtZero: true, grid: { color: 'rgba(148,163,184,0.2)' }, title: { display: true, text: 'm³' } } } }
+  });
+
+  // Recovery source breakdown (mock physical vs commercial split)
+  const physTypes = ['Burst Repair', 'Service Line Repair', 'PRV Adjustment'];
+  const commTypes = ['Meter Replacement', 'Customer Audit', 'Bulk Meter Calibration'];
+  const physWater = NRW.INTERVENTIONS.filter(i => physTypes.includes(i.type)).reduce((s, i) => s + i.waterRecoveredM3, 0);
+  const commWater = NRW.INTERVENTIONS.filter(i => commTypes.includes(i.type)).reduce((s, i) => s + i.waterRecoveredM3, 0);
+  Charts.customChart('chart-savings-source', {
+    type: 'doughnut',
+    data: { labels: ['Physical loss recovery', 'Commercial loss recovery'], datasets: [{ data: [physWater, commWater], backgroundColor: ['#ef4444', '#0ea5e9'], borderWidth: 2, borderColor: '#fff' }] },
+    options: { responsive: true, maintainAspectRatio: false, cutout: '60%', plugins: { legend: { position: 'bottom' }, tooltip: { callbacks: { label: c => `${c.label}: ${NRW.formatM3(c.parsed)} (${((c.parsed / (physWater + commWater)) * 100).toFixed(0)}%)` } } } }
+  });
+
+  // Per-zone water saved bar
+  Charts.customChart('chart-savings-zone', {
+    type: 'bar',
+    data: {
+      labels: zoneLeaderboard.map(r => r.zone.name),
+      datasets: [{ label: 'Air terselamatkan (m³)', data: zoneLeaderboard.map(r => r.water), backgroundColor: zoneLeaderboard.map(r => colors[r.zone.region] || '#94a3b8'), borderRadius: 4, maxBarThickness: 38 }]
+    },
+    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false }, tooltip: { callbacks: { label: c => NRW.formatM3(c.parsed.y) } } }, scales: { x: { grid: { display: false }, ticks: { autoSkip: false, maxRotation: 35, minRotation: 35 } }, y: { beginAtZero: true, grid: { color: 'rgba(148,163,184,0.2)' }, title: { display: true, text: 'm³' } } } }
+  });
+
+  root.querySelectorAll('[data-zone]').forEach(b => b.addEventListener('click', () => openZoneDrawer(b.dataset.zone)));
+  root.querySelectorAll('[data-intervention]').forEach(b => b.addEventListener('click', () => openInterventionDrawer(b.dataset.intervention)));
+  root.querySelectorAll('[data-region-zones]').forEach(b => b.addEventListener('click', () => {
+    location.hash = '#/zones';
+    toast(`Showing zones in ${b.dataset.regionZones}`, 'info', { duration: 2000 });
+  }));
+  document.getElementById('savings-pdf').addEventListener('click', () => toast('PDF export queued — laporan dalam proses', 'info'));
+  document.getElementById('savings-xlsx').addEventListener('click', () => toast('Excel export queued', 'info'));
+  renderIcons();
+}
+
 // ============ COMMERCIAL ============
 function renderCommercial(root) {
   const filtered = NRW.CASES.filter(c => {
@@ -2505,6 +2857,7 @@ function openCommandPalette() {
     const items = [];
     items.push({ section: 'Navigate', label: 'Dashboard', sub: 'Operations overview', iconName: 'layout-dashboard', kbd: 'gd', action: () => location.hash = '#/dashboard' });
     items.push({ section: 'Navigate', label: 'Network Map', sub: 'Zones, sensors, alarms', iconName: 'map', kbd: 'gm', action: () => location.hash = '#/map' });
+    items.push({ section: 'Navigate', label: 'Savings · Wilayah', sub: 'Snapshot penghematan per region', iconName: 'trending-up', action: () => location.hash = '#/savings' });
     items.push({ section: 'Navigate', label: 'Work Orders', sub: 'Inspection queue', iconName: 'clipboard-list', kbd: 'gw', action: () => location.hash = '#/workorders' });
     items.push({ section: 'Navigate', label: 'Zones / DMA', sub: 'All monitoring zones', iconName: 'hexagon', kbd: 'gz', action: () => location.hash = '#/zones' });
     items.push({ section: 'Navigate', label: 'Alarms', sub: 'Active alerts', iconName: 'triangle-alert', kbd: 'ga', action: () => location.hash = '#/alarms' });
