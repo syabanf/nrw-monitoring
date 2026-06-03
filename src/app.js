@@ -1,7 +1,7 @@
 import * as NRW from './data.js';
 import * as Charts from './charts.js';
 import * as State from './state.js';
-import { initMap, setLayerVisibility, focusZone, resetView, setOnDrill, destroyMap } from './map.js';
+import { initMap, setLayerVisibility, focusZone, resetView, setOnDrill, destroyMap, initCommercialMap, setCommercialOnDrill, destroyCommercialMap, focusCommercialZone } from './map.js';
 import { renderIcons, icon } from './icons.js';
 import { toast } from './toast.js';
 import { openModal, closeModal, confirm } from './modal.js';
@@ -9,7 +9,7 @@ import { startRealtime, subscribeRealtime, getStream, getStats, getTickRate } fr
 import { getCurrentUser, isLoggedIn, logout } from './auth.js';
 import { renderLogin } from './login.js';
 
-const VIEWS = ['dashboard', 'savings', 'map', 'reports', 'workorders', 'zones', 'sensors', 'alarms', 'customers', 'commercial', 'analytics', 'schedule', 'teams', 'hardware'];
+const VIEWS = ['dashboard', 'savings', 'map', 'reports', 'workorders', 'zones', 'sensors', 'alarms', 'customers', 'commercial', 'analytics', 'schedule', 'teams', 'hardware', 'pricing', 'commercialmap'];
 let currentView = 'dashboard';
 let currentReportTab = 'nrw';
 let lastDrawer = null;
@@ -196,23 +196,29 @@ function renderShell() {
           </div>
         </div>
         <nav class="p-2 flex-1">
-          <div class="nav-section"><div class="nav-section-label text-[10px] uppercase tracking-widest text-slate-500 px-2.5 pt-3.5 pb-1.5">Overview</div></div>
+          <div class="nav-section"><div class="nav-section-label text-[10px] uppercase tracking-widest text-slate-500 px-2.5 pt-3.5 pb-1.5">Monitoring</div></div>
           <a class="nav-item" data-view="dashboard" href="#/dashboard">${icon('layout-dashboard', 'nav-icon')}<span class="nav-label">Dashboard</span></a>
           <a class="nav-item" data-view="map" href="#/map">${icon('map', 'nav-icon')}<span class="nav-label">Network Map</span></a>
-          <a class="nav-item" data-view="savings" href="#/savings">${icon('trending-up', 'nav-icon')}<span class="nav-label">Savings · Wilayah</span></a>
-          <div class="nav-section"><div class="nav-section-label text-[10px] uppercase tracking-widest text-slate-500 px-2.5 pt-3.5 pb-1.5">Operations</div></div>
-          <a class="nav-item" data-view="zones" href="#/zones">${icon('hexagon', 'nav-icon')}<span class="nav-label">Zones / DMA</span><span class="nav-badge">${NRW.KPI.totalZones}</span></a>
+          <a class="nav-item" data-view="hardware" href="#/hardware">${icon('cpu', 'nav-icon')}<span class="nav-label">Hardware Live</span><span class="nav-badge nav-badge-warn" id="hw-nav-badge">${NRW.DEVICES.filter(d => d.updateAvailable).length}</span></a>
+          <a class="nav-item" data-view="alarms" href="#/alarms">${icon('triangle-alert', 'nav-icon')}<span class="nav-label">Alarms</span><span class="nav-badge nav-badge-danger">${NRW.KPI.activeAlarms}</span></a>
+
+          <div class="nav-section"><div class="nav-section-label text-[10px] uppercase tracking-widest text-slate-500 px-2.5 pt-3.5 pb-1.5">Field Operations</div></div>
           <a class="nav-item" data-view="workorders" href="#/workorders">${icon('clipboard-list', 'nav-icon')}<span class="nav-label">Work Orders</span><span class="nav-badge nav-badge-warn">${NRW.KPI.openWorkOrders}</span></a>
           <a class="nav-item" data-view="schedule" href="#/schedule">${icon('calendar-days', 'nav-icon')}<span class="nav-label">Schedule</span></a>
           <a class="nav-item" data-view="teams" href="#/teams">${icon('users', 'nav-icon')}<span class="nav-label">Field Teams</span></a>
           <a class="nav-item" data-view="sensors" href="#/sensors">${icon('radio-tower', 'nav-icon')}<span class="nav-label">Sensors</span></a>
-          <a class="nav-item" data-view="hardware" href="#/hardware">${icon('cpu', 'nav-icon')}<span class="nav-label">Hardware Live</span><span class="nav-badge nav-badge-warn" id="hw-nav-badge">${NRW.DEVICES.filter(d => d.updateAvailable).length}</span></a>
-          <a class="nav-item" data-view="alarms" href="#/alarms">${icon('triangle-alert', 'nav-icon')}<span class="nav-label">Alarms</span><span class="nav-badge nav-badge-danger">${NRW.KPI.activeAlarms}</span></a>
-          <div class="nav-section"><div class="nav-section-label text-[10px] uppercase tracking-widest text-slate-500 px-2.5 pt-3.5 pb-1.5">Customers & Data</div></div>
-          <a class="nav-item" data-view="customers" href="#/customers">${icon('building-2', 'nav-icon')}<span class="nav-label">Customers</span></a>
-          <a class="nav-item" data-view="commercial" href="#/commercial">${icon('banknote', 'nav-icon')}<span class="nav-label">Commercial</span><span class="nav-badge nav-badge-warn">${NRW.CASES.filter(c => !['Resolved', 'WrittenOff'].includes(c.status)).length}</span></a>
+
+          <div class="nav-section"><div class="nav-section-label text-[10px] uppercase tracking-widest text-slate-500 px-2.5 pt-3.5 pb-1.5">Analytics</div></div>
+          <a class="nav-item" data-view="zones" href="#/zones">${icon('hexagon', 'nav-icon')}<span class="nav-label">Zones / DMA</span><span class="nav-badge">${NRW.KPI.totalZones}</span></a>
+          <a class="nav-item" data-view="savings" href="#/savings">${icon('trending-up', 'nav-icon')}<span class="nav-label">Savings · Wilayah</span></a>
           <a class="nav-item" data-view="analytics" href="#/analytics">${icon('activity', 'nav-icon')}<span class="nav-label">MNF Analytics</span></a>
           <a class="nav-item" data-view="reports" href="#/reports">${icon('bar-chart-3', 'nav-icon')}<span class="nav-label">Reports</span></a>
+
+          <div class="nav-section"><div class="nav-section-label text-[10px] uppercase tracking-widest text-slate-500 px-2.5 pt-3.5 pb-1.5">Commercial</div></div>
+          <a class="nav-item" data-view="customers" href="#/customers">${icon('building-2', 'nav-icon')}<span class="nav-label">Customers</span></a>
+          <a class="nav-item" data-view="commercial" href="#/commercial">${icon('banknote', 'nav-icon')}<span class="nav-label">Cases</span><span class="nav-badge nav-badge-warn">${NRW.CASES.filter(c => !['Resolved', 'WrittenOff'].includes(c.status)).length}</span></a>
+          <a class="nav-item" data-view="commercialmap" href="#/commercialmap">${icon('map-pin', 'nav-icon')}<span class="nav-label">Commercial Map</span></a>
+          <a class="nav-item" data-view="pricing" href="#/pricing">${icon('banknote', 'nav-icon')}<span class="nav-label">Pricing · Master Data</span></a>
         </nav>
         <div class="p-3 border-t border-slate-950">
           ${(() => {
@@ -337,6 +343,7 @@ function handleRoute() {
   document.querySelectorAll('.nav-item').forEach(item => item.classList.toggle('active', item.dataset.view === view));
   Charts.destroyAllCharts();
   if (view !== 'map') destroyMap();
+  if (view !== 'commercialmap') destroyCommercialMap();
   const titles = {
     dashboard: ['Operations Dashboard', 'Real-time NRW recovery status'],
     map: ['Network Map', 'Zones, pipes, sensors, work orders, alarms'],
@@ -351,7 +358,9 @@ function handleRoute() {
     teams: ['Field Teams', `${NRW.TEAMS.length} teams · current workload and availability`],
     hardware: ['Hardware Live', `${NRW.DEVICES.length} telemetric devices · live MQTT stream`],
     commercial: ['Commercial Loss Management', `${NRW.CASES.filter(c => !['Resolved', 'WrittenOff'].includes(c.status)).length} open cases · ${NRW.CAMPAIGNS.filter(c => c.status === 'active').length} active campaigns`],
-    savings: ['Savings Snapshot', 'Penghematan per wilayah · region-level recovery view']
+    savings: ['Savings Snapshot', 'Penghematan per wilayah · region-level recovery view'],
+    pricing: ['Pricing · Master Data', `${NRW.TARIFFS.length} tariff tiers · effective ${NRW.formatDate(NRW.TARIFFS[0]?.effectiveDate)}`],
+    commercialmap: ['Commercial Map', 'Kerugian vs keuntungan per zona berdasarkan komersialisasi']
   };
   document.getElementById('view-title').textContent = titles[view][0];
   document.getElementById('view-sub').textContent = titles[view][1];
@@ -376,6 +385,8 @@ function renderView(view) {
     case 'hardware': return renderHardware(root);
     case 'commercial': return renderCommercial(root);
     case 'savings': return renderSavings(root);
+    case 'pricing': return renderPricing(root);
+    case 'commercialmap': return renderCommercialMap(root);
   }
 }
 
@@ -1924,6 +1935,269 @@ function closeNotifPanel() {
   document.removeEventListener('click', notifOutsideClick);
 }
 
+// ============ PRICING · MASTER DATA ============
+function renderPricing(root) {
+  const byTariff = NRW.customersByTariff();
+  const totalCustomers = NRW.CUSTOMERS.length;
+  const expectedRevenue = NRW.TARIFFS.reduce((s, t) => {
+    const list = byTariff[t.id] || [];
+    return s + list.reduce((ss, c) => ss + (c.avgMonthly * t.rate), 0);
+  }, 0);
+  const subsidisedShare = (() => {
+    const list = byTariff['TAR-R1'] || [];
+    return ((list.length / Math.max(1, totalCustomers)) * 100).toFixed(1);
+  })();
+  const businessShare = NRW.TARIFFS.filter(t => t.type === 'Business').reduce((s, t) => s + (byTariff[t.id]?.length || 0), 0);
+
+  root.innerHTML = `
+    <div class="page-intro">
+      <div class="page-intro-icon">${icon('banknote', 'w-5 h-5')}</div>
+      <div class="flex-1">
+        <div class="font-semibold text-sm">Master data pricing</div>
+        <div class="text-slate-500 text-xs mt-0.5">Atur struktur tariff per blok konsumsi & tipe pelanggan. Perubahan akan otomatis diterapkan pada estimasi recovery, billing audit, dan commercial cases.</div>
+      </div>
+      <button class="btn-primary flex items-center gap-1.5" id="new-tariff-btn">${icon('plus', 'w-3.5 h-3.5')} New Tariff</button>
+    </div>
+
+    <div class="grid grid-cols-[repeat(auto-fit,minmax(220px,1fr))] gap-3">
+      ${kpiCard('Active tariff tiers', NRW.TARIFFS.filter(t => t.status === 'active').length, `${NRW.TARIFFS.length} total tiers`, 'info', 'banknote')}
+      ${kpiCard('Expected monthly revenue', NRW.formatIDR(expectedRevenue), 'based on customer master', 'good', 'trending-up')}
+      ${kpiCard('Subsidised customers (R1)', `${subsidisedShare}%`, `${(byTariff['TAR-R1'] || []).length} dari ${totalCustomers}`, 'warn', 'building-2')}
+      ${kpiCard('Business customers', businessShare, `${((businessShare / totalCustomers) * 100).toFixed(0)}% of base`, 'info', 'briefcase')}
+    </div>
+
+    <div class="card">
+      <div class="card-header">
+        <h3>Tariff matrix · ${NRW.TARIFFS.length} tiers</h3>
+        <div class="flex gap-2 items-center">
+          <span class="chip">Effective ${NRW.formatDate(NRW.TARIFFS[0]?.effectiveDate)}</span>
+          <button class="btn-secondary text-xs flex items-center gap-1.5" onclick="window.print()">${icon('printer', 'w-3 h-3')} Print matrix</button>
+        </div>
+      </div>
+      <div class="overflow-x-auto"><table class="data-table">
+        <thead><tr><th>Code</th><th>Tier name</th><th>Type</th><th>Usage range (m³)</th><th>Rate (Rp/m³)</th><th>Customers</th><th>Est. mo revenue</th><th>Status</th><th>Effective</th><th>Actions</th></tr></thead>
+        <tbody>${NRW.TARIFFS.map(t => {
+          const list = byTariff[t.id] || [];
+          const revenue = list.reduce((s, c) => s + (c.avgMonthly * t.rate), 0);
+          const usageLabel = t.maxUsage === null ? `${t.minUsage}+ m³` : `${t.minUsage}–${t.maxUsage} m³`;
+          const typeColor = t.type === 'Business' ? 'chip-success' : t.type === 'Social' ? '' : '';
+          return `<tr class="clickable" data-edit-tariff="${t.id}">
+            <td><strong class="font-mono">${t.code}</strong></td>
+            <td>${t.tier}<div class="text-slate-400 text-[10px] mt-0.5">${t.description}</div></td>
+            <td><span class="chip ${typeColor}">${t.type}</span></td>
+            <td>${usageLabel}</td>
+            <td><strong>Rp ${t.rate.toLocaleString()}</strong></td>
+            <td>${list.length.toLocaleString()}<div class="text-slate-400 text-[10px]">${((list.length / Math.max(1, totalCustomers)) * 100).toFixed(1)}%</div></td>
+            <td>${NRW.formatIDR(revenue)}</td>
+            <td><span class="badge" style="background:${t.status === 'active' ? '#10b981' : '#94a3b8'}">${t.status}</span></td>
+            <td class="text-slate-500">${NRW.formatDate(t.effectiveDate)}</td>
+            <td class="!py-1"><div class="flex gap-0.5"><button class="row-action" data-edit-tariff-btn="${t.id}" title="Edit">${icon('pencil', 'w-3 h-3')}</button><button class="row-action danger" data-delete-tariff="${t.id}" title="Delete">${icon('trash-2', 'w-3 h-3')}</button></div></td>
+          </tr>`;
+        }).join('')}</tbody>
+      </table></div>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-[1fr_1fr] gap-4">
+      <div class="card">
+        <div class="card-header"><h3>Distribusi pelanggan per tariff</h3></div>
+        <div class="p-3.5 relative" style="height:260px"><canvas id="chart-tariff-dist"></canvas></div>
+      </div>
+      <div class="card">
+        <div class="card-header"><h3>Riwayat versi tariff</h3><span class="chip">${NRW.TARIFF_HISTORY.length} versions</span></div>
+        <div class="overflow-x-auto"><table class="data-table compact">
+          <thead><tr><th>Version</th><th>Effective</th><th>Status</th><th>Changes</th></tr></thead>
+          <tbody>${NRW.TARIFF_HISTORY.map(h => `
+            <tr><td><strong>${h.version}</strong></td><td>${NRW.formatDate(h.effectiveDate)}</td>
+            <td><span class="badge" style="background:${h.status === 'active' ? '#10b981' : '#94a3b8'}">${h.status}</span></td>
+            <td class="text-slate-500">${h.changes}<div class="text-slate-400 text-[10px] mt-0.5">Approved by ${h.approvedBy} · ${h.tariffSnapshot} tariffs</div></td></tr>
+          `).join('')}</tbody>
+        </table></div>
+      </div>
+    </div>
+
+    <div class="card p-4 flex items-center justify-between gap-3 flex-wrap bg-amber-50 border-amber-200">
+      <div class="flex items-center gap-3">
+        <div class="w-9 h-9 rounded-full bg-amber-100 text-amber-600 grid place-items-center">${icon('triangle-alert', 'w-4 h-4')}</div>
+        <div>
+          <div class="font-semibold text-sm text-amber-900">Catatan untuk admin master data</div>
+          <div class="text-amber-800 text-xs mt-0.5">Perubahan tariff harus disetujui board PDAM. Versi baru akan dijadikan baseline untuk semua estimasi recovery & billing audit ke depan.</div>
+        </div>
+      </div>
+      <button class="btn-secondary flex items-center gap-1.5">${icon('download', 'w-3.5 h-3.5')} Export to ERP/Billing</button>
+    </div>
+  `;
+
+  // Chart
+  Charts.customChart('chart-tariff-dist', {
+    type: 'bar',
+    data: {
+      labels: NRW.TARIFFS.map(t => t.code),
+      datasets: [{
+        label: 'Customers',
+        data: NRW.TARIFFS.map(t => (byTariff[t.id] || []).length),
+        backgroundColor: NRW.TARIFFS.map(t => t.type === 'Business' ? '#10b981' : t.type === 'Social' ? '#a855f7' : '#0ea5e9'),
+        borderRadius: 4, maxBarThickness: 36
+      }]
+    },
+    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false }, tooltip: { callbacks: { afterLabel: ctx => { const t = NRW.TARIFFS[ctx.dataIndex]; return [`${t.tier}`, `Rp ${t.rate.toLocaleString()}/m³`]; } } } }, scales: { x: { grid: { display: false } }, y: { beginAtZero: true, grid: { color: 'rgba(148,163,184,0.2)' }, ticks: { precision: 0 } } } }
+  });
+
+  document.getElementById('new-tariff-btn').addEventListener('click', () => openTariffFormModal());
+  root.querySelectorAll('[data-edit-tariff]').forEach(r => r.addEventListener('click', () => openTariffFormModal(NRW.getTariff(r.dataset.editTariff))));
+  root.querySelectorAll('[data-edit-tariff-btn]').forEach(b => b.addEventListener('click', e => { e.stopPropagation(); openTariffFormModal(NRW.getTariff(b.dataset.editTariffBtn)); }));
+  root.querySelectorAll('[data-delete-tariff]').forEach(b => b.addEventListener('click', e => { e.stopPropagation(); deleteTariff(b.dataset.deleteTariff); }));
+  renderIcons();
+}
+
+function openTariffFormModal(tariff = null) {
+  const isEdit = !!tariff;
+  openModal({
+    title: isEdit ? `Edit tariff · ${tariff.code}` : 'Add new tariff tier',
+    subtitle: isEdit ? 'Update pricing structure' : 'Define a new pricing block',
+    size: 'md',
+    body: `<form id="tariff-form" class="flex flex-col gap-3">
+      ${field('Tier name (display)', 'tier', tariff?.tier || '', { required: true, placeholder: 'e.g. Residential · 11-20 m³' })}
+      <div class="grid grid-cols-3 gap-3">
+        ${selectField('Type', 'type', ['Residential', 'Business', 'Social'], tariff?.type || 'Residential', { required: true })}
+        ${field('Min usage (m³)', 'minUsage', tariff?.minUsage ?? 0, { type: 'number' })}
+        ${field('Max usage (m³, blank = unlimited)', 'maxUsage', tariff?.maxUsage ?? '', { type: 'number' })}
+      </div>
+      <div class="grid grid-cols-2 gap-3">
+        ${field('Rate (Rp / m³)', 'rate', tariff?.rate ?? 0, { type: 'number', required: true })}
+        ${field('Effective date', 'effectiveDate', tariff?.effectiveDate || '2026-06-02', { type: 'date' })}
+      </div>
+      ${selectField('Status', 'status', ['active', 'archived'], tariff?.status || 'active')}
+      ${field('Description', 'description', tariff?.description || '', { rows: 2 })}
+    </form>`,
+    footer: `<button class="btn-secondary" data-modal-close>Cancel</button><button class="btn-primary" data-action="submit">${isEdit ? 'Save changes' : 'Add tariff'}</button>`,
+    onAction: (action, overlay) => {
+      if (action !== 'submit') return;
+      const data = Object.fromEntries(new FormData(overlay.querySelector('#tariff-form')).entries());
+      if (!data.tier || !data.rate) { toast('Tier name and rate are required', 'error'); return false; }
+      if (isEdit) { State.updateTariff(tariff.id, data); toast(`Tariff ${tariff.code} updated`, 'success'); }
+      else { const t = State.createTariff(data); toast(`Tariff ${t.code} added`, 'success'); }
+      rerender();
+      return true;
+    }
+  });
+}
+
+function deleteTariff(id) {
+  const t = NRW.getTariff(id);
+  if (!t) return;
+  confirm({
+    title: 'Delete tariff tier?',
+    message: `Tariff <strong>${t.tier}</strong> (Rp ${t.rate.toLocaleString()}/m³) will be removed. Customers currently in this tier will fall back to the next applicable tier.`,
+    confirmLabel: 'Delete tariff',
+    onConfirm: () => { State.deleteTariff(id); toast(`Tariff ${t.code} deleted`, 'success'); rerender(); }
+  });
+}
+
+// ============ COMMERCIAL MAP ============
+function renderCommercialMap(root) {
+  const ranked = NRW.ZONES.map(z => ({ zone: z, m: NRW.zoneCommercialMetrics(z.id) })).sort((a, b) => a.m.netPosition - b.m.netPosition);
+  const worst = ranked.slice(0, 5);
+  const best = ranked.slice(-5).reverse();
+  const totalAtRisk = ranked.reduce((s, r) => s + r.m.revenueAtRisk, 0);
+  const totalRecovered = ranked.reduce((s, r) => s + r.m.totalRecovered, 0);
+
+  root.innerHTML = `
+    <div class="page-intro">
+      <div class="page-intro-icon">${icon('map-pin', 'w-5 h-5')}</div>
+      <div class="flex-1">
+        <div class="font-semibold text-sm">Commercial Map · Kerugian vs Keuntungan per Zona</div>
+        <div class="text-slate-500 text-xs mt-0.5">Setiap zona diwarnai berdasarkan posisi finansial bersih (recovered − revenue at risk). Klik zona untuk detail kasus komersial.</div>
+      </div>
+      <div class="flex gap-2 items-center">
+        <div class="flex items-center gap-1.5 text-[11px] text-slate-500"><span class="w-3 h-3 rounded-sm bg-red-600"></span>Loss</div>
+        <div class="flex items-center gap-1.5 text-[11px] text-slate-500"><span class="w-3 h-3 rounded-sm bg-amber-500"></span>Mixed</div>
+        <div class="flex items-center gap-1.5 text-[11px] text-slate-500"><span class="w-3 h-3 rounded-sm bg-emerald-500"></span>Profit</div>
+      </div>
+    </div>
+
+    <div class="grid grid-cols-[repeat(auto-fit,minmax(220px,1fr))] gap-3">
+      ${kpiCard('Revenue at risk', NRW.formatIDR(totalAtRisk), 'across all zones', 'bad', 'trending-down')}
+      ${kpiCard('Recovered YTD', NRW.formatIDR(totalRecovered), 'commercial + interventions', 'good', 'trending-up')}
+      ${kpiCard('Net position', `${totalRecovered - totalAtRisk >= 0 ? '+' : ''}${NRW.formatIDR(totalRecovered - totalAtRisk)}`, totalRecovered >= totalAtRisk ? 'pilot is net positive' : 'losses exceed recovery', totalRecovered >= totalAtRisk ? 'good' : 'bad', 'banknote')}
+      ${kpiCard('Profitable zones', ranked.filter(r => r.m.netPosition >= 0).length, `of ${ranked.length} zones`, 'info', 'hexagon')}
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-4 h-[calc(100vh-56px-40px-100px)]">
+      <div class="card relative overflow-hidden">
+        <div id="commercial-map-canvas" class="w-full h-full min-h-[500px]"></div>
+        <div class="absolute top-3 right-3 z-10 flex gap-1.5">
+          <button class="bg-white border border-slate-200 px-3 py-1.5 rounded-md text-xs shadow hover:bg-slate-50" id="cm-reset">Reset view</button>
+        </div>
+      </div>
+
+      <aside class="flex flex-col gap-3 overflow-y-auto">
+        <div class="card">
+          <div class="card-header"><h3 class="text-xs">🔴 Top loss zones</h3></div>
+          <div class="flex flex-col">
+            ${worst.map((r, i) => `
+              <div class="px-4 py-2.5 border-b border-slate-100 last:border-0 hover:bg-slate-50 cursor-pointer flex items-center gap-3" data-jump-zone="${r.zone.id}">
+                <div class="text-slate-400 font-bold text-xs w-6">#${i + 1}</div>
+                <div class="flex-1 min-w-0">
+                  <div class="text-xs font-medium truncate">${r.zone.name}</div>
+                  <div class="text-[10px] text-slate-500">${r.m.openCases.length} open cases</div>
+                </div>
+                <div class="text-right">
+                  <div class="text-xs font-bold text-red-600">${NRW.formatIDR(Math.abs(r.m.netPosition))}</div>
+                  <div class="text-[9px] text-slate-400">net loss</div>
+                </div>
+              </div>
+            `).join('')}
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-header"><h3 class="text-xs">🟢 Top profit zones</h3></div>
+          <div class="flex flex-col">
+            ${best.map((r, i) => `
+              <div class="px-4 py-2.5 border-b border-slate-100 last:border-0 hover:bg-slate-50 cursor-pointer flex items-center gap-3" data-jump-zone="${r.zone.id}">
+                <div class="text-slate-400 font-bold text-xs w-6">#${i + 1}</div>
+                <div class="flex-1 min-w-0">
+                  <div class="text-xs font-medium truncate">${r.zone.name}</div>
+                  <div class="text-[10px] text-slate-500">${r.m.resolvedCases.length} resolved cases</div>
+                </div>
+                <div class="text-right">
+                  <div class="text-xs font-bold text-emerald-600">${NRW.formatIDR(r.m.totalRecovered)}</div>
+                  <div class="text-[9px] text-slate-400">recovered</div>
+                </div>
+              </div>
+            `).join('')}
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-header"><h3 class="text-xs">Legend · skala net position</h3></div>
+          <div class="p-3 flex flex-col gap-1.5 text-[11px]">
+            <div class="flex items-center gap-2"><span class="w-4 h-4 rounded-sm" style="background:#15803d"></span>&gt; Rp 100 jt profit</div>
+            <div class="flex items-center gap-2"><span class="w-4 h-4 rounded-sm" style="background:#10b981"></span>Rp 30–100 jt profit</div>
+            <div class="flex items-center gap-2"><span class="w-4 h-4 rounded-sm" style="background:#84cc16"></span>Rp 0–30 jt profit</div>
+            <div class="flex items-center gap-2"><span class="w-4 h-4 rounded-sm" style="background:#f59e0b"></span>Rp 0–30 jt loss</div>
+            <div class="flex items-center gap-2"><span class="w-4 h-4 rounded-sm" style="background:#f97316"></span>Rp 30–80 jt loss</div>
+            <div class="flex items-center gap-2"><span class="w-4 h-4 rounded-sm" style="background:#dc2626"></span>&gt; Rp 80 jt loss</div>
+            <div class="border-t border-slate-200 pt-2 mt-1">
+              <div class="text-slate-500">Circles = open commercial cases</div>
+              <div class="text-slate-400 text-[10px]">size proportional to revenue loss</div>
+            </div>
+          </div>
+        </div>
+      </aside>
+    </div>
+  `;
+
+  initCommercialMap('commercial-map-canvas', { zoom: 12 });
+  setCommercialOnDrill((kind, data) => {
+    if (kind === 'zone') openZoneDrawer(data.id);
+    else if (kind === 'case') openCaseDrawer(data.id);
+  });
+  root.querySelectorAll('[data-jump-zone]').forEach(b => b.addEventListener('click', () => focusCommercialZone(b.dataset.jumpZone)));
+  document.getElementById('cm-reset').addEventListener('click', () => focusCommercialZone(NRW.ZONES[0].id));
+  renderIcons();
+}
+
 // ============ SAVINGS · PENGHEMATAN PER WILAYAH ============
 function regionAggregate(regionName) {
   const zones = NRW.ZONES.filter(z => z.region === regionName);
@@ -2865,7 +3139,9 @@ function openCommandPalette() {
     items.push({ section: 'Navigate', label: 'MNF Analytics', sub: 'Zone comparison', iconName: 'activity', action: () => location.hash = '#/analytics' });
     items.push({ section: 'Navigate', label: 'Schedule', sub: 'Calendar view', iconName: 'calendar-days', kbd: 'gs', action: () => location.hash = '#/schedule' });
     items.push({ section: 'Navigate', label: 'Hardware Live', sub: 'Devices & live telemetry stream', iconName: 'cpu', kbd: 'gh', action: () => location.hash = '#/hardware' });
-    items.push({ section: 'Navigate', label: 'Commercial', sub: 'Cases, campaigns, tariff', iconName: 'banknote', action: () => location.hash = '#/commercial' });
+    items.push({ section: 'Navigate', label: 'Commercial Cases', sub: 'Cases, campaigns', iconName: 'banknote', action: () => location.hash = '#/commercial' });
+    items.push({ section: 'Navigate', label: 'Commercial Map', sub: 'Kerugian vs keuntungan per zona', iconName: 'map-pin', action: () => location.hash = '#/commercialmap' });
+    items.push({ section: 'Navigate', label: 'Pricing · Master Data', sub: 'Manage tariff tiers', iconName: 'banknote', action: () => location.hash = '#/pricing' });
     items.push({ section: 'Navigate', label: 'Reports', sub: 'Analytics & exports', iconName: 'bar-chart-3', kbd: 'gr', action: () => location.hash = '#/reports' });
     items.push({ section: 'Actions', label: 'Create work order', sub: 'New inspection or intervention task', iconName: 'plus', kbd: '⌘N', action: () => openCreateWOModal() });
     items.push({ section: 'Actions', label: 'Print current view', sub: 'Send to printer / save PDF', iconName: 'printer', kbd: '⌘P', action: () => window.print() });

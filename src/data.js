@@ -232,10 +232,12 @@ export const KPI = {
 };
 
 export function formatIDR(amount) {
-  if (amount >= 1e9) return `Rp ${(amount / 1e9).toFixed(2)} M`;
-  if (amount >= 1e6) return `Rp ${(amount / 1e6).toFixed(1)} jt`;
-  if (amount >= 1e3) return `Rp ${(amount / 1e3).toFixed(0)} rb`;
-  return `Rp ${amount}`;
+  const sign = amount < 0 ? '−' : '';
+  const abs = Math.abs(amount);
+  if (abs >= 1e9) return `${sign}Rp ${(abs / 1e9).toFixed(2)} M`;
+  if (abs >= 1e6) return `${sign}Rp ${(abs / 1e6).toFixed(1)} jt`;
+  if (abs >= 1e3) return `${sign}Rp ${(abs / 1e3).toFixed(0)} rb`;
+  return `${sign}Rp ${abs}`;
 }
 export function formatM3(volume) {
   if (volume >= 1e6) return `${(volume / 1e6).toFixed(2)} jt m³`;
@@ -577,15 +579,50 @@ export const CAMPAIGNS = [
   { id: 'CMP-2026-000', name: 'Q1 2026 — High-volume customer review', status: 'completed', startedAt: '2026-01-15', plannedEnd: '2026-03-31', targetCount: 64, completedCount: 64, scheduledCount: 0, zoneIds: ['DMA-002', 'DMA-006', 'DMA-008'], expectedRecoveryIDR: 420000000, actualRecoveryIDR: 378000000, type: 'audit', description: 'Audit of all top-quartile commercial customers — completed.' }
 ];
 
-// ============ TARIFF STRUCTURE ============
+// ============ TARIFF STRUCTURE (MASTER DATA) ============
 export const TARIFFS = [
-  { tier: 'Residential R1 · 0-10 m³', rate: 1500, type: 'Residential', description: 'Social tariff for low-income households' },
-  { tier: 'Residential R2 · 11-20 m³', rate: 3500, type: 'Residential', description: 'Standard residential tariff' },
-  { tier: 'Residential R3 · 21+ m³', rate: 5500, type: 'Residential', description: 'Progressive tariff for high usage' },
-  { tier: 'Business B1 · Small', rate: 6500, type: 'Business', description: 'Small commercial connections' },
-  { tier: 'Business B2 · Medium', rate: 8500, type: 'Business', description: 'Medium commercial / hospitality' },
-  { tier: 'Business B3 · Industrial', rate: 11500, type: 'Business', description: 'Industrial and large-volume users' }
+  { id: 'TAR-R1', code: 'R1', tier: 'Residential · 0-10 m³', rate: 1500, type: 'Residential', minUsage: 0, maxUsage: 10, effectiveDate: '2026-01-01', status: 'active', description: 'Social tariff for low-income households (subsidised block)' },
+  { id: 'TAR-R2', code: 'R2', tier: 'Residential · 11-20 m³', rate: 3500, type: 'Residential', minUsage: 11, maxUsage: 20, effectiveDate: '2026-01-01', status: 'active', description: 'Standard residential block' },
+  { id: 'TAR-R3', code: 'R3', tier: 'Residential · 21+ m³', rate: 5500, type: 'Residential', minUsage: 21, maxUsage: null, effectiveDate: '2026-01-01', status: 'active', description: 'Progressive tariff — discourages high usage' },
+  { id: 'TAR-B1', code: 'B1', tier: 'Business · Small', rate: 6500, type: 'Business', minUsage: 0, maxUsage: 50, effectiveDate: '2026-01-01', status: 'active', description: 'Small shops, offices, restaurants' },
+  { id: 'TAR-B2', code: 'B2', tier: 'Business · Medium', rate: 8500, type: 'Business', minUsage: 51, maxUsage: 200, effectiveDate: '2026-01-01', status: 'active', description: 'Hospitality, medium commercial / mall' },
+  { id: 'TAR-B3', code: 'B3', tier: 'Business · Industrial', rate: 11500, type: 'Business', minUsage: 201, maxUsage: null, effectiveDate: '2026-01-01', status: 'active', description: 'Industrial users, large hotels, hospitals' },
+  { id: 'TAR-S1', code: 'S1', tier: 'Social · Public', rate: 800, type: 'Social', minUsage: 0, maxUsage: null, effectiveDate: '2026-01-01', status: 'active', description: 'Mosque, public water tap, school washroom' }
 ];
+
+export const TARIFF_HISTORY = [
+  { version: 'v2026.1', effectiveDate: '2026-01-01', status: 'active', changes: 'Annual tariff revision · +8% across the board · added Social Public tariff', approvedBy: 'PDAM Board', tariffSnapshot: 7 },
+  { version: 'v2024.2', effectiveDate: '2024-07-01', status: 'archived', changes: 'Mid-year adjustment · industrial tariff +12%', approvedBy: 'PDAM Board', tariffSnapshot: 6 },
+  { version: 'v2024.1', effectiveDate: '2024-01-01', status: 'archived', changes: 'Annual revision · 6 tariff blocks', approvedBy: 'PDAM Board', tariffSnapshot: 6 }
+];
+
+export const getTariff = id => TARIFFS.find(t => t.id === id);
+export function customersByTariff() {
+  const map = {};
+  TARIFFS.forEach(t => { map[t.id] = []; });
+  CUSTOMERS.forEach(c => {
+    let bestTier;
+    if (c.type === 'Business') {
+      bestTier = TARIFFS.find(t => t.type === 'Business' && c.avgMonthly >= t.minUsage && (t.maxUsage === null || c.avgMonthly <= t.maxUsage));
+    } else {
+      bestTier = TARIFFS.find(t => t.type === 'Residential' && c.avgMonthly >= t.minUsage && (t.maxUsage === null || c.avgMonthly <= t.maxUsage));
+    }
+    if (bestTier) map[bestTier.id].push(c);
+  });
+  return map;
+}
+
+// Commercial zone aggregates — for commercial map view
+export function zoneCommercialMetrics(zoneId) {
+  const cases = CASES.filter(c => c.zoneId === zoneId);
+  const openCases = cases.filter(c => !['Resolved', 'WrittenOff'].includes(c.status));
+  const resolvedCases = cases.filter(c => c.status === 'Resolved');
+  const revenueAtRisk = openCases.reduce((s, c) => s + c.estRevenueLossIDR, 0);
+  const revenueRecovered = resolvedCases.reduce((s, c) => s + c.estRecoveryIDR, 0);
+  const interventionRev = INTERVENTIONS.filter(i => i.zoneId === zoneId).reduce((s, i) => s + i.revenueRecoveredIDR, 0);
+  const totalRecovered = revenueRecovered + interventionRev;
+  return { cases, openCases, resolvedCases, revenueAtRisk, totalRecovered, netPosition: totalRecovered - revenueAtRisk };
+}
 
 export function caseTypeLabel(type) { return CASE_TYPES[type]?.label || type; }
 export function caseTypeIcon(type) { return CASE_TYPES[type]?.icon || 'circle-alert'; }

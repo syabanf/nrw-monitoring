@@ -10,10 +10,10 @@ import { fromLonLat, transformExtent } from 'ol/proj';
 import { Style, Stroke, Fill, Text, Circle as CircleStyle, RegularShape } from 'ol/style';
 
 import {
-  ZONES, SENSORS, WORK_ORDERS, ALARMS, PIPES,
+  ZONES, SENSORS, WORK_ORDERS, ALARMS, PIPES, CASES, CUSTOMERS,
   getZone, getSensor, JAKARTA_CENTER,
   classificationColor, severityColor, statusColor,
-  formatM3, formatDateTime
+  formatM3, formatDateTime, formatIDR, zoneCommercialMetrics
 } from './data.js';
 
 let mapInstance = null;
@@ -366,4 +366,197 @@ export function destroyMap() {
     mapInstance.setTarget(null);
     mapInstance = null;
   }
+}
+
+// ============ COMMERCIAL MAP MODE ============
+function commercialZoneColor(metrics) {
+  if (metrics.netPosition >= 100000000) return '#15803d';
+  if (metrics.netPosition >= 30000000) return '#10b981';
+  if (metrics.netPosition >= 0) return '#84cc16';
+  if (metrics.netPosition >= -30000000) return '#f59e0b';
+  if (metrics.netPosition >= -80000000) return '#f97316';
+  return '#dc2626';
+}
+
+function commercialZoneStyle(feature) {
+  const zone = feature.get('data');
+  const metrics = zoneCommercialMetrics(zone.id);
+  const color = commercialZoneColor(metrics);
+  return new Style({
+    stroke: new Stroke({ color, width: 2.5 }),
+    fill: new Fill({ color: hexToRgba(color, 0.4) }),
+    text: new Text({
+      text: `${zone.id}\n${(metrics.netPosition / 1e6).toFixed(1)}M`,
+      font: 'bold 11px Inter, sans-serif',
+      fill: new Fill({ color: '#0f172a' }),
+      stroke: new Stroke({ color: '#fff', width: 3 }),
+      textAlign: 'center'
+    })
+  });
+}
+
+function caseMarkerStyle(feature) {
+  const c = feature.get('data');
+  const color = c.priority === 'Critical' ? '#dc2626' : c.priority === 'High' ? '#f97316' : '#f59e0b';
+  const radius = Math.max(8, Math.min(20, Math.sqrt(c.estRevenueLossIDR / 1000000) * 1.5));
+  return new Style({
+    image: new CircleStyle({
+      radius,
+      fill: new Fill({ color: hexToRgba(color, 0.6) }),
+      stroke: new Stroke({ color, width: 2 })
+    })
+  });
+}
+
+let commercialMapInstance = null;
+let commercialZoneLayer = null;
+let commercialCaseLayer = null;
+let commercialPopupOverlay = null;
+let commercialOnDrillFn = null;
+
+export function initCommercialMap(containerId, options = {}) {
+  const { center = JAKARTA_CENTER, zoom = 12 } = options;
+  const projection = fromLonLat(center);
+
+  commercialZoneLayer = new VectorLayer({
+    source: new VectorSource({
+      features: ZONES.map(zone => {
+        const coords = zone.polygon.map(ring => ring.map(c => fromLonLat(c)));
+        const f = new Feature({ geometry: new Polygon(coords), kind: 'zone', data: zone });
+        f.setId(zone.id);
+        return f;
+      })
+    }),
+    style: commercialZoneStyle,
+    zIndex: 1
+  });
+
+  commercialCaseLayer = new VectorLayer({
+    source: new VectorSource({
+      features: CASES.filter(c => !['Resolved', 'WrittenOff'].includes(c.status)).map(c => {
+        const zone = ZONES.find(z => z.id === c.zoneId);
+        if (!zone) return null;
+        const customer = c.customerId ? CUSTOMERS.find(x => x.id === c.customerId) : null;
+        let coords;
+        if (customer) {
+          const r = (c.id.charCodeAt(8) % 10 - 5) * 0.001;
+          const r2 = (c.id.charCodeAt(9) % 10 - 5) * 0.0008;
+          coords = [zone.center[0] + r, zone.center[1] + r2];
+        } else {
+          coords = zone.center;
+        }
+        const f = new Feature({ geometry: new Point(fromLonLat(coords)), kind: 'case', data: c });
+        f.setId(c.id);
+        return f;
+      }).filter(Boolean)
+    }),
+    style: caseMarkerStyle,
+    zIndex: 4
+  });
+
+  commercialMapInstance = new Map({
+    target: containerId,
+    layers: [
+      new TileLayer({
+        source: new XYZ({
+          url: 'https://{a-c}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+          attributions: '© OpenStreetMap contributors',
+          crossOrigin: 'anonymous'
+        })
+      }),
+      commercialZoneLayer, commercialCaseLayer
+    ],
+    view: new View({ center: projection, zoom }),
+    controls: []
+  });
+
+  // Popup
+  const container = document.getElementById(containerId);
+  let popupEl = container.querySelector('.map-popup');
+  if (!popupEl) {
+    popupEl = document.createElement('div');
+    popupEl.className = 'map-popup';
+    popupEl.style.display = 'none';
+    container.appendChild(popupEl);
+  }
+  commercialPopupOverlay = new Overlay({
+    element: popupEl,
+    autoPan: { animation: { duration: 200 } },
+    offset: [0, -12],
+    positioning: 'bottom-center'
+  });
+  commercialMapInstance.addOverlay(commercialPopupOverlay);
+
+  commercialMapInstance.on('pointermove', e => {
+    commercialMapInstance.getTargetElement().style.cursor = commercialMapInstance.hasFeatureAtPixel(e.pixel) ? 'pointer' : '';
+  });
+  commercialMapInstance.on('singleclick', e => {
+    const features = commercialMapInstance.getFeaturesAtPixel(e.pixel);
+    if (!features.length) { popupEl.style.display = 'none'; commercialPopupOverlay.setPosition(undefined); return; }
+    const sorted = features.sort((a, b) => (a.get('kind') === 'case' ? 0 : 1) - (b.get('kind') === 'case' ? 0 : 1));
+    const f = sorted[0];
+    const kind = f.get('kind');
+    const data = f.get('data');
+    popupEl.innerHTML = commercialPopupContent(kind, data);
+    popupEl.style.display = 'block';
+    commercialPopupOverlay.setPosition(e.coordinate);
+    const btn = popupEl.querySelector('[data-drill]');
+    if (btn) btn.onclick = () => {
+      popupEl.style.display = 'none';
+      commercialPopupOverlay.setPosition(undefined);
+      if (commercialOnDrillFn) commercialOnDrillFn(kind, data);
+    };
+  });
+
+  return commercialMapInstance;
+}
+
+function commercialPopupContent(kind, data) {
+  if (kind === 'zone') {
+    const m = zoneCommercialMetrics(data.id);
+    const positionColor = m.netPosition >= 0 ? '#10b981' : '#dc2626';
+    return `
+      <div class="popup-header">
+        <strong>${data.name}</strong>
+        <span class="popup-id">${data.id}</span>
+      </div>
+      <div class="popup-body">
+        <div class="popup-row"><span>Revenue at risk</span><strong style="color:#dc2626">${formatIDR(m.revenueAtRisk)}</strong></div>
+        <div class="popup-row"><span>Total recovered</span><strong style="color:#10b981">${formatIDR(m.totalRecovered)}</strong></div>
+        <div class="popup-row"><span>Net position</span><strong style="color:${positionColor}">${m.netPosition >= 0 ? '+' : ''}${formatIDR(m.netPosition)}</strong></div>
+        <div class="popup-row"><span>Open cases</span><strong>${m.openCases.length}</strong></div>
+        <div class="popup-row"><span>Resolved cases</span><strong>${m.resolvedCases.length}</strong></div>
+        <div class="popup-row"><span>Classification</span><strong>${data.classification}</strong></div>
+      </div>
+      <button class="popup-btn" data-drill>Open zone detail</button>
+    `;
+  }
+  if (kind === 'case') {
+    return `
+      <div class="popup-header">
+        <strong>${data.id}</strong>
+        <span class="popup-id" style="background:#dc2626">${data.priority}</span>
+      </div>
+      <div class="popup-body">
+        <div class="popup-row"><span>Customer</span><strong>${data.customerName}</strong></div>
+        <div class="popup-row"><span>Zone</span><strong>${data.zoneName}</strong></div>
+        <div class="popup-row"><span>Months</span><strong>${data.monthsAffected}</strong></div>
+        <div class="popup-row"><span>Loss</span><strong style="color:#dc2626">${formatIDR(data.estRevenueLossIDR)}</strong></div>
+        <div class="popup-row"><span>Status</span><strong>${data.status}</strong></div>
+      </div>
+      <button class="popup-btn" data-drill>Open case</button>
+    `;
+  }
+  return '';
+}
+
+export function setCommercialOnDrill(fn) { commercialOnDrillFn = fn; }
+export function destroyCommercialMap() {
+  if (commercialMapInstance) { commercialMapInstance.setTarget(null); commercialMapInstance = null; }
+}
+export function focusCommercialZone(zoneId) {
+  const zone = ZONES.find(z => z.id === zoneId);
+  if (!zone || !commercialMapInstance) return;
+  const extent = transformExtent(zone.bbox, 'EPSG:4326', 'EPSG:3857');
+  commercialMapInstance.getView().fit(extent, { duration: 500, padding: [50, 50, 50, 50], maxZoom: 16 });
 }

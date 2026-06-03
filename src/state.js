@@ -1,6 +1,6 @@
 import {
   WORK_ORDERS, ALARMS, INTERVENTIONS, CUSTOMERS, NOTIFICATIONS, ACTIVITY_FEED,
-  ZONES, SENSORS, DEVICES, TEAMS, CASES, CAMPAIGNS, JAKARTA_CENTER,
+  ZONES, SENSORS, DEVICES, TEAMS, CASES, CAMPAIGNS, TARIFFS, JAKARTA_CENTER,
   formatDateTime
 } from './data.js';
 
@@ -585,5 +585,53 @@ export function deleteCampaign(id) {
   if (i < 0) return false;
   CAMPAIGNS.splice(i, 1);
   emit('campaignDeleted', id);
+  return true;
+}
+
+// ============ CRUD: TARIFFS (PRICING MASTER DATA) ============
+function nextTariffId(type) {
+  const prefix = type === 'Residential' ? 'R' : type === 'Business' ? 'B' : 'S';
+  const existing = TARIFFS.filter(t => t.code.startsWith(prefix)).map(t => parseInt(t.code.slice(1), 10) || 0);
+  const next = Math.max(0, ...existing) + 1;
+  return { id: `TAR-${prefix}${next}`, code: `${prefix}${next}` };
+}
+
+export function createTariff(data) {
+  const { id, code } = nextTariffId(data.type || 'Residential');
+  const tariff = {
+    id, code,
+    tier: data.tier || `${data.type} · ${code}`,
+    rate: Number(data.rate) || 0,
+    type: data.type || 'Residential',
+    minUsage: Number(data.minUsage) || 0,
+    maxUsage: data.maxUsage === '' || data.maxUsage === null ? null : Number(data.maxUsage),
+    effectiveDate: data.effectiveDate || '2026-06-02',
+    status: data.status || 'active',
+    description: data.description || ''
+  };
+  TARIFFS.push(tariff);
+  emit('tariffCreated', tariff);
+  return tariff;
+}
+
+export function updateTariff(id, data) {
+  const t = TARIFFS.find(x => x.id === id);
+  if (!t) return null;
+  ['tier', 'rate', 'type', 'minUsage', 'maxUsage', 'effectiveDate', 'status', 'description'].forEach(k => {
+    if (data[k] !== undefined) {
+      if (['rate', 'minUsage'].includes(k)) t[k] = Number(data[k]);
+      else if (k === 'maxUsage') t[k] = data[k] === '' || data[k] === null ? null : Number(data[k]);
+      else t[k] = data[k];
+    }
+  });
+  emit('tariffUpdated', t);
+  return t;
+}
+
+export function deleteTariff(id) {
+  const i = TARIFFS.findIndex(x => x.id === id);
+  if (i < 0) return false;
+  TARIFFS.splice(i, 1);
+  emit('tariffDeleted', id);
   return true;
 }
