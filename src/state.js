@@ -203,7 +203,7 @@ export function createZone(data) {
   const nrwPercent = +(((input - billed) / input) * 100).toFixed(1);
   const classification = nrwPercent > 35 ? 'Critical' : nrwPercent > 25 ? 'High' : nrwPercent > 20 ? 'Medium' : 'Low';
   const zone = {
-    id, name: data.name, region: data.region || 'Jakarta Pusat', type: data.type || 'DMA',
+    id, name: data.name, region: data.region || 'Cirebon', type: data.type || 'DMA',
     customers: Number(data.customers) || 0, sensors: 0,
     inputVolume: input, billedVolume: billed, nrwPercent,
     nrwTrend: 'stable', nrwChange: 0, suspicionScore: 30, classification,
@@ -417,7 +417,7 @@ export function createTeam(data) {
     id,
     name: data.name || `Field Team ${id.slice(-1)}`,
     lead: data.lead, members: Number(data.members) || 3,
-    region: data.region || 'Jakarta Pusat',
+    region: data.region || 'Cirebon',
     specialties: data.specialties ? (Array.isArray(data.specialties) ? data.specialties : data.specialties.split(',').map(s => s.trim()).filter(Boolean)) : [],
     status: data.status || 'active', activeWO: 0
   };

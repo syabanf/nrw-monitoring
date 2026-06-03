@@ -24,7 +24,7 @@ export function renderLogin(onSuccess) {
           <div class="w-11 h-11 bg-gradient-to-br from-sky-500 to-sky-700 rounded-xl grid place-items-center text-white font-bold tracking-wide shadow-lg">NRW</div>
           <div>
             <div class="font-semibold text-base">Recovery System</div>
-            <div class="text-slate-400 text-[12px]">PDAM Jakarta · Pilot</div>
+            <div class="text-slate-400 text-[12px]">PDAM Cirebon × Indramayu · Pilot</div>
           </div>
         </div>
 
@@ -56,7 +56,7 @@ export function renderLogin(onSuccess) {
         </div>
 
         <div class="relative z-10 text-[11px] text-slate-500">
-          © 2026 PDAM Jakarta · NRW Recovery System
+          © 2026 PDAM Cirebon × Indramayu · NRW Recovery System
         </div>
       </aside>
 

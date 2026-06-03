@@ -1,16 +1,22 @@
-export const JAKARTA_CENTER = [106.8456, -6.2088];
+// Pilot serves PDAM Tirta Giri Nata (Cirebon) × PDAM Tirta Darma Ayu (Indramayu).
+// Map center sits between both service areas on the north coast of West Java.
+export const JAKARTA_CENTER = [108.44, -6.55];
+export const PILOT_CENTER = JAKARTA_CENTER;
 
 export const ZONES = [
-  { id: 'DMA-001', name: 'Menteng Central', region: 'Jakarta Pusat', type: 'DMA', customers: 1247, sensors: 8, inputVolume: 45230, billedVolume: 32100, nrwPercent: 29.0, nrwTrend: 'down', nrwChange: -2.4, suspicionScore: 78, classification: 'High', center: [106.8316, -6.1944], bbox: [106.8240, -6.2010, 106.8392, -6.1878], minNightFlow: 4.2, baselineMNF: 2.8, avgPressure: 2.8, pressureStability: 0.85, activeAlarms: 2, openWorkOrders: 1, lastIntervention: '2026-04-18', estRevenue: 161250000 },
-  { id: 'DMA-002', name: 'Sudirman Business', region: 'Jakarta Pusat', type: 'Pressure Zone', customers: 892, sensors: 6, inputVolume: 38450, billedVolume: 32680, nrwPercent: 15.0, nrwTrend: 'stable', nrwChange: 0.3, suspicionScore: 32, classification: 'Low', center: [106.8222, -6.2086], bbox: [106.8145, -6.2155, 106.8299, -6.2017], minNightFlow: 1.8, baselineMNF: 1.6, avgPressure: 3.2, pressureStability: 0.94, activeAlarms: 0, openWorkOrders: 0, lastIntervention: '2026-02-10', estRevenue: 158340000 },
-  { id: 'DMA-003', name: 'Senayan Residential', region: 'Jakarta Selatan', type: 'DMA', customers: 2103, sensors: 11, inputVolume: 62890, billedVolume: 38320, nrwPercent: 39.1, nrwTrend: 'up', nrwChange: 4.2, suspicionScore: 91, classification: 'Critical', center: [106.8014, -6.2249], bbox: [106.7920, -6.2335, 106.8108, -6.2163], minNightFlow: 8.7, baselineMNF: 3.4, avgPressure: 2.1, pressureStability: 0.62, activeAlarms: 4, openWorkOrders: 2, lastIntervention: '2025-11-22', estRevenue: 192600000 },
-  { id: 'DMA-004', name: 'Kebayoran Baru', region: 'Jakarta Selatan', type: 'DMA', customers: 1685, sensors: 9, inputVolume: 51200, billedVolume: 36850, nrwPercent: 28.0, nrwTrend: 'down', nrwChange: -1.8, suspicionScore: 71, classification: 'High', center: [106.7989, -6.2400], bbox: [106.7895, -6.2480, 106.8083, -6.2320], minNightFlow: 5.3, baselineMNF: 3.1, avgPressure: 2.6, pressureStability: 0.78, activeAlarms: 1, openWorkOrders: 1, lastIntervention: '2026-03-30', estRevenue: 184250000 },
-  { id: 'DMA-005', name: 'Kemang Village', region: 'Jakarta Selatan', type: 'DMA', customers: 743, sensors: 5, inputVolume: 28940, billedVolume: 22150, nrwPercent: 23.5, nrwTrend: 'down', nrwChange: -3.1, suspicionScore: 58, classification: 'Medium', center: [106.8175, -6.2620], bbox: [106.8108, -6.2685, 106.8242, -6.2555], minNightFlow: 2.9, baselineMNF: 2.4, avgPressure: 2.9, pressureStability: 0.88, activeAlarms: 1, openWorkOrders: 0, lastIntervention: '2026-05-08', estRevenue: 110750000 },
-  { id: 'DMA-006', name: 'Cilandak Industrial', region: 'Jakarta Selatan', type: 'Branch Zone', customers: 412, sensors: 7, inputVolume: 84300, billedVolume: 71200, nrwPercent: 15.5, nrwTrend: 'stable', nrwChange: 0.1, suspicionScore: 38, classification: 'Low', center: [106.7980, -6.2870], bbox: [106.7880, -6.2955, 106.8080, -6.2785], minNightFlow: 12.1, baselineMNF: 11.5, avgPressure: 3.5, pressureStability: 0.91, activeAlarms: 0, openWorkOrders: 0, lastIntervention: '2026-01-15', estRevenue: 356000000 },
-  { id: 'DMA-007', name: 'Tebet Urban', region: 'Jakarta Selatan', type: 'DMA', customers: 1923, sensors: 10, inputVolume: 58940, billedVolume: 39850, nrwPercent: 32.4, nrwTrend: 'up', nrwChange: 2.7, suspicionScore: 84, classification: 'High', center: [106.8580, -6.2330], bbox: [106.8490, -6.2420, 106.8670, -6.2240], minNightFlow: 6.4, baselineMNF: 3.2, avgPressure: 2.4, pressureStability: 0.71, activeAlarms: 3, openWorkOrders: 2, lastIntervention: '2025-12-12', estRevenue: 199250000 },
-  { id: 'DMA-008', name: 'Kuningan Office', region: 'Jakarta Selatan', type: 'Pressure Zone', customers: 567, sensors: 6, inputVolume: 42180, billedVolume: 35420, nrwPercent: 16.0, nrwTrend: 'stable', nrwChange: -0.5, suspicionScore: 41, classification: 'Low', center: [106.8330, -6.2280], bbox: [106.8265, -6.2340, 106.8395, -6.2220], minNightFlow: 2.3, baselineMNF: 2.1, avgPressure: 3.1, pressureStability: 0.92, activeAlarms: 0, openWorkOrders: 1, lastIntervention: '2026-03-02', estRevenue: 177100000 },
-  { id: 'DMA-009', name: 'Pondok Indah', region: 'Jakarta Selatan', type: 'DMA', customers: 1056, sensors: 8, inputVolume: 39820, billedVolume: 28640, nrwPercent: 28.1, nrwTrend: 'down', nrwChange: -1.2, suspicionScore: 68, classification: 'Medium', center: [106.7790, -6.2640], bbox: [106.7710, -6.2720, 106.7870, -6.2560], minNightFlow: 4.7, baselineMNF: 3.5, avgPressure: 2.7, pressureStability: 0.81, activeAlarms: 1, openWorkOrders: 1, lastIntervention: '2026-04-25', estRevenue: 143200000 },
-  { id: 'DMA-010', name: 'Gambir Heritage', region: 'Jakarta Pusat', type: 'DMA', customers: 834, sensors: 7, inputVolume: 31650, billedVolume: 19450, nrwPercent: 38.5, nrwTrend: 'up', nrwChange: 5.8, suspicionScore: 88, classification: 'Critical', center: [106.8275, -6.1760], bbox: [106.8195, -6.1840, 106.8355, -6.1680], minNightFlow: 7.2, baselineMNF: 2.9, avgPressure: 2.0, pressureStability: 0.58, activeAlarms: 3, openWorkOrders: 2, lastIntervention: '2025-09-18', estRevenue: 97250000 }
+  // ===== CIREBON (5 zones) =====
+  { id: 'DMA-001', name: 'Kejaksan Pusat', region: 'Cirebon', type: 'DMA', customers: 1450, sensors: 8, inputVolume: 45230, billedVolume: 32100, nrwPercent: 29.0, nrwTrend: 'down', nrwChange: -2.4, suspicionScore: 78, classification: 'High', center: [108.5520, -6.7320], bbox: [108.5440, -6.7390, 108.5600, -6.7250], minNightFlow: 4.2, baselineMNF: 2.8, avgPressure: 2.8, pressureStability: 0.85, activeAlarms: 2, openWorkOrders: 1, lastIntervention: '2026-04-18', estRevenue: 161250000 },
+  { id: 'DMA-002', name: 'Lemahwungkuk Pelabuhan', region: 'Cirebon', type: 'Branch Zone', customers: 980, sensors: 6, inputVolume: 38450, billedVolume: 32680, nrwPercent: 15.0, nrwTrend: 'stable', nrwChange: 0.3, suspicionScore: 32, classification: 'Low', center: [108.5685, -6.7385], bbox: [108.5605, -6.7460, 108.5765, -6.7310], minNightFlow: 1.8, baselineMNF: 1.6, avgPressure: 3.2, pressureStability: 0.94, activeAlarms: 0, openWorkOrders: 0, lastIntervention: '2026-02-10', estRevenue: 158340000 },
+  { id: 'DMA-003', name: 'Sumber Kabupaten', region: 'Cirebon', type: 'DMA', customers: 2120, sensors: 11, inputVolume: 62890, billedVolume: 38320, nrwPercent: 39.1, nrwTrend: 'up', nrwChange: 4.2, suspicionScore: 91, classification: 'Critical', center: [108.4800, -6.7600], bbox: [108.4700, -6.7700, 108.4900, -6.7500], minNightFlow: 8.7, baselineMNF: 3.4, avgPressure: 2.1, pressureStability: 0.62, activeAlarms: 4, openWorkOrders: 2, lastIntervention: '2025-11-22', estRevenue: 192600000 },
+  { id: 'DMA-004', name: 'Plered Batik', region: 'Cirebon', type: 'DMA', customers: 1230, sensors: 9, inputVolume: 51200, billedVolume: 36850, nrwPercent: 28.0, nrwTrend: 'down', nrwChange: -1.8, suspicionScore: 71, classification: 'High', center: [108.4500, -6.7100], bbox: [108.4410, -6.7185, 108.4590, -6.7015], minNightFlow: 5.3, baselineMNF: 3.1, avgPressure: 2.6, pressureStability: 0.78, activeAlarms: 1, openWorkOrders: 1, lastIntervention: '2026-03-30', estRevenue: 184250000 },
+  { id: 'DMA-005', name: 'Weru Heritage', region: 'Cirebon', type: 'Pressure Zone', customers: 720, sensors: 5, inputVolume: 28940, billedVolume: 22150, nrwPercent: 23.5, nrwTrend: 'down', nrwChange: -3.1, suspicionScore: 58, classification: 'Medium', center: [108.5100, -6.7250], bbox: [108.5035, -6.7315, 108.5165, -6.7185], minNightFlow: 2.9, baselineMNF: 2.4, avgPressure: 2.9, pressureStability: 0.88, activeAlarms: 1, openWorkOrders: 0, lastIntervention: '2026-05-08', estRevenue: 110750000 },
+
+  // ===== INDRAMAYU (5 zones) =====
+  { id: 'DMA-006', name: 'Balongan Industrial', region: 'Indramayu', type: 'Branch Zone', customers: 540, sensors: 7, inputVolume: 84300, billedVolume: 71200, nrwPercent: 15.5, nrwTrend: 'stable', nrwChange: 0.1, suspicionScore: 38, classification: 'Low', center: [108.4000, -6.3650], bbox: [108.3900, -6.3750, 108.4100, -6.3550], minNightFlow: 12.1, baselineMNF: 11.5, avgPressure: 3.5, pressureStability: 0.91, activeAlarms: 0, openWorkOrders: 0, lastIntervention: '2026-01-15', estRevenue: 356000000 },
+  { id: 'DMA-007', name: 'Indramayu Kota', region: 'Indramayu', type: 'DMA', customers: 1980, sensors: 10, inputVolume: 58940, billedVolume: 39850, nrwPercent: 32.4, nrwTrend: 'up', nrwChange: 2.7, suspicionScore: 84, classification: 'High', center: [108.3232, -6.3373], bbox: [108.3140, -6.3460, 108.3324, -6.3286], minNightFlow: 6.4, baselineMNF: 3.2, avgPressure: 2.4, pressureStability: 0.71, activeAlarms: 3, openWorkOrders: 2, lastIntervention: '2025-12-12', estRevenue: 199250000 },
+  { id: 'DMA-008', name: 'Haurgeulis Agri', region: 'Indramayu', type: 'Pressure Zone', customers: 890, sensors: 6, inputVolume: 42180, billedVolume: 35420, nrwPercent: 16.0, nrwTrend: 'stable', nrwChange: -0.5, suspicionScore: 41, classification: 'Low', center: [108.0700, -6.4400], bbox: [108.0625, -6.4475, 108.0775, -6.4325], minNightFlow: 2.3, baselineMNF: 2.1, avgPressure: 3.1, pressureStability: 0.92, activeAlarms: 0, openWorkOrders: 1, lastIntervention: '2026-03-02', estRevenue: 177100000 },
+  { id: 'DMA-009', name: 'Sindang Coastal', region: 'Indramayu', type: 'DMA', customers: 1240, sensors: 8, inputVolume: 39820, billedVolume: 28640, nrwPercent: 28.1, nrwTrend: 'down', nrwChange: -1.2, suspicionScore: 68, classification: 'Medium', center: [108.3500, -6.3500], bbox: [108.3415, -6.3585, 108.3585, -6.3415], minNightFlow: 4.7, baselineMNF: 3.5, avgPressure: 2.7, pressureStability: 0.81, activeAlarms: 1, openWorkOrders: 1, lastIntervention: '2026-04-25', estRevenue: 143200000 },
+  { id: 'DMA-010', name: 'Jatibarang Hub', region: 'Indramayu', type: 'DMA', customers: 1680, sensors: 7, inputVolume: 31650, billedVolume: 19450, nrwPercent: 38.5, nrwTrend: 'up', nrwChange: 5.8, suspicionScore: 88, classification: 'Critical', center: [108.3000, -6.4733], bbox: [108.2915, -6.4820, 108.3085, -6.4645], minNightFlow: 7.2, baselineMNF: 2.9, avgPressure: 2.0, pressureStability: 0.58, activeAlarms: 3, openWorkOrders: 2, lastIntervention: '2025-09-18', estRevenue: 97250000 }
 ];
 
 ZONES.forEach(z => {
@@ -51,41 +57,41 @@ ZONES.forEach(zone => {
 });
 
 export const WORK_ORDERS = [
-  { id: 'WO-2026-0142', title: 'Investigate critical MNF spike', zoneId: 'DMA-003', type: 'Inspection', priority: 'Critical', status: 'InProgress', assignee: 'Field Team Alpha', createdBy: 'Budi Santoso', createdAt: '2026-05-28T10:00:00', dueDate: '2026-06-03', description: 'MNF jumped from 3.4 to 8.7 L/s over 2 weeks. Acoustic sensor SNR-0021 detected unusual noise pattern at Junction B. Verify pipe condition and inspect for hidden leakage.', suspicionScore: 91, estRecoveryM3: 2400, estRecoveryIDR: 12000000,
+  { id: 'WO-2026-0142', title: 'Investigate critical MNF spike', zoneId: 'DMA-003', type: 'Inspection', priority: 'Critical', status: 'InProgress', assignee: 'Tim Cirebon Alpha', createdBy: 'Budi Santoso', createdAt: '2026-05-28T10:00:00', dueDate: '2026-06-03', description: 'MNF jumped from 3.4 to 8.7 L/s over 2 weeks. Acoustic sensor SNR-0021 detected unusual noise pattern at Junction B. Verify pipe condition and inspect for hidden leakage.', suspicionScore: 91, estRecoveryM3: 2400, estRecoveryIDR: 12000000,
     updates: [
       { ts: '2026-05-28T10:00', user: 'Budi Santoso', action: 'Created', note: 'Auto-generated from suspicion score threshold' },
-      { ts: '2026-05-28T14:22', user: 'Dewi Anggraini', action: 'Assigned', note: 'Assigned to Field Team Alpha, priority Critical' },
-      { ts: '2026-05-29T08:15', user: 'Field Team Alpha', action: 'In Progress', note: 'Team dispatched, ETA on site 09:30' },
-      { ts: '2026-05-29T11:45', user: 'Field Team Alpha', action: 'Field Note', note: 'Surface inspection complete, no visible leak. Will deploy ground microphone tomorrow.' },
-      { ts: '2026-05-30T15:20', user: 'Field Team Alpha', action: 'Field Note', note: 'Suspected sub-surface leak at coordinate near valve V-203. Excavation requested.' }
+      { ts: '2026-05-28T14:22', user: 'Dewi Anggraini', action: 'Assigned', note: 'Assigned to Tim Cirebon Alpha, priority Critical' },
+      { ts: '2026-05-29T08:15', user: 'Tim Cirebon Alpha', action: 'In Progress', note: 'Team dispatched, ETA on site 09:30' },
+      { ts: '2026-05-29T11:45', user: 'Tim Cirebon Alpha', action: 'Field Note', note: 'Surface inspection complete, no visible leak. Will deploy ground microphone tomorrow.' },
+      { ts: '2026-05-30T15:20', user: 'Tim Cirebon Alpha', action: 'Field Note', note: 'Suspected sub-surface leak at coordinate near valve V-203. Excavation requested.' }
     ],
     evidence: [
       { type: 'photo', label: 'Junction B surface', ts: '2026-05-29T11:30' },
       { type: 'photo', label: 'Acoustic reading', ts: '2026-05-30T15:10' },
       { type: 'gps', label: 'Suspected leak point', coords: [106.8014, -6.2249], ts: '2026-05-30T15:20' }
     ] },
-  { id: 'WO-2026-0141', title: 'Pressure instability investigation', zoneId: 'DMA-007', type: 'Inspection', priority: 'High', status: 'Assigned', assignee: 'Field Team Bravo', createdBy: 'Budi Santoso', createdAt: '2026-05-30T09:14:00', dueDate: '2026-06-04', description: 'Pressure stability dropped to 0.71. Repeated drops detected during peak hours suggest demand-supply imbalance or partially closed valve.', suspicionScore: 84, estRecoveryM3: 1850, estRecoveryIDR: 9250000,
+  { id: 'WO-2026-0141', title: 'Pressure instability investigation', zoneId: 'DMA-007', type: 'Inspection', priority: 'High', status: 'Assigned', assignee: 'Tim Cirebon Bravo', createdBy: 'Budi Santoso', createdAt: '2026-05-30T09:14:00', dueDate: '2026-06-04', description: 'Pressure stability dropped to 0.71. Repeated drops detected during peak hours suggest demand-supply imbalance or partially closed valve.', suspicionScore: 84, estRecoveryM3: 1850, estRecoveryIDR: 9250000,
     updates: [
       { ts: '2026-05-30T09:14', user: 'Budi Santoso', action: 'Created', note: 'Generated from pressure intelligence alert' },
-      { ts: '2026-05-30T13:00', user: 'Dewi Anggraini', action: 'Assigned', note: 'Field Team Bravo notified' }
+      { ts: '2026-05-30T13:00', user: 'Dewi Anggraini', action: 'Assigned', note: 'Tim Cirebon Bravo notified' }
     ], evidence: [] },
-  { id: 'WO-2026-0140', title: 'Customer meter audit - zero consumption cluster', zoneId: 'DMA-010', type: 'Commercial', priority: 'High', status: 'PendingEvidence', assignee: 'Field Team Charlie', createdBy: 'Sari Wijaya', createdAt: '2026-05-25T11:20:00', dueDate: '2026-06-02', description: '23 customers with zero consumption for 4+ months in Gambir Heritage cluster. Verify meter condition and check for illegal bypass.', suspicionScore: 76, estRecoveryM3: 980, estRecoveryIDR: 4900000,
+  { id: 'WO-2026-0140', title: 'Customer meter audit - zero consumption cluster', zoneId: 'DMA-010', type: 'Commercial', priority: 'High', status: 'PendingEvidence', assignee: 'Tim Indramayu Charlie', createdBy: 'Sari Wijaya', createdAt: '2026-05-25T11:20:00', dueDate: '2026-06-02', description: '23 customers with zero consumption for 4+ months in Jatibarang Hub cluster. Verify meter condition and check for illegal bypass.', suspicionScore: 76, estRecoveryM3: 980, estRecoveryIDR: 4900000,
     updates: [
       { ts: '2026-05-25T11:20', user: 'Sari Wijaya', action: 'Created', note: 'Commercial loss analytics flagged cluster' },
-      { ts: '2026-05-25T14:30', user: 'Dewi Anggraini', action: 'Assigned', note: 'Field Team Charlie assigned' },
-      { ts: '2026-05-27T10:00', user: 'Field Team Charlie', action: 'In Progress', note: 'Started door-to-door audit' },
-      { ts: '2026-05-31T16:40', user: 'Field Team Charlie', action: 'Pending Evidence', note: '18 of 23 audited. 4 broken meters, 2 inactive, 12 normal usage with meter reading error.' }
+      { ts: '2026-05-25T14:30', user: 'Dewi Anggraini', action: 'Assigned', note: 'Tim Indramayu Charlie assigned' },
+      { ts: '2026-05-27T10:00', user: 'Tim Indramayu Charlie', action: 'In Progress', note: 'Started door-to-door audit' },
+      { ts: '2026-05-31T16:40', user: 'Tim Indramayu Charlie', action: 'Pending Evidence', note: '18 of 23 audited. 4 broken meters, 2 inactive, 12 normal usage with meter reading error.' }
     ],
     evidence: [
       { type: 'photo', label: 'Broken meter #1', ts: '2026-05-27T10:45' },
       { type: 'photo', label: 'Broken meter #2', ts: '2026-05-27T11:30' },
       { type: 'document', label: 'Audit checklist', ts: '2026-05-31T16:35' }
     ] },
-  { id: 'WO-2026-0139', title: 'Verify burst repair on main line', zoneId: 'DMA-001', type: 'Verification', priority: 'Medium', status: 'Verified', assignee: 'Field Team Alpha', createdBy: 'Budi Santoso', createdAt: '2026-05-20T08:00:00', dueDate: '2026-05-30', closedAt: '2026-05-29T16:00', description: 'Verify post-repair conditions after main pipe burst at Menteng Central. Confirm MNF reduction and pressure recovery.', suspicionScore: 65, estRecoveryM3: 3200, estRecoveryIDR: 16000000, actualRecoveryM3: 3450, actualRecoveryIDR: 17250000,
+  { id: 'WO-2026-0139', title: 'Verify burst repair on main line', zoneId: 'DMA-001', type: 'Verification', priority: 'Medium', status: 'Verified', assignee: 'Tim Cirebon Alpha', createdBy: 'Budi Santoso', createdAt: '2026-05-20T08:00:00', dueDate: '2026-05-30', closedAt: '2026-05-29T16:00', description: 'Verify post-repair conditions after main pipe burst at Kejaksan Pusat. Confirm MNF reduction and pressure recovery.', suspicionScore: 65, estRecoveryM3: 3200, estRecoveryIDR: 16000000, actualRecoveryM3: 3450, actualRecoveryIDR: 17250000,
     updates: [
       { ts: '2026-05-20T08:00', user: 'Budi Santoso', action: 'Created', note: '' },
       { ts: '2026-05-20T11:30', user: 'Dewi Anggraini', action: 'Assigned', note: '' },
-      { ts: '2026-05-21T09:00', user: 'Field Team Alpha', action: 'Completed', note: 'Measurements taken, MNF down to 4.2 L/s' },
+      { ts: '2026-05-21T09:00', user: 'Tim Cirebon Alpha', action: 'Completed', note: 'Measurements taken, MNF down to 4.2 L/s' },
       { ts: '2026-05-29T16:00', user: 'Dewi Anggraini', action: 'Verified', note: 'Recovery confirmed, exceeded estimate by 7.8%' }
     ],
     evidence: [
@@ -93,27 +99,27 @@ export const WORK_ORDERS = [
       { type: 'photo', label: 'Post-repair', ts: '2026-05-21T11:00' },
       { type: 'document', label: 'MNF report', ts: '2026-05-21T15:00' }
     ] },
-  { id: 'WO-2026-0138', title: 'PRV calibration check', zoneId: 'DMA-008', type: 'Maintenance', priority: 'Medium', status: 'Assigned', assignee: 'Field Team Delta', createdBy: 'Sari Wijaya', createdAt: '2026-05-29T14:30:00', dueDate: '2026-06-05', description: 'Routine PRV calibration based on quarterly schedule.', suspicionScore: 41, estRecoveryM3: 0, estRecoveryIDR: 0,
+  { id: 'WO-2026-0138', title: 'PRV calibration check', zoneId: 'DMA-008', type: 'Maintenance', priority: 'Medium', status: 'Assigned', assignee: 'Tim Indramayu Delta', createdBy: 'Sari Wijaya', createdAt: '2026-05-29T14:30:00', dueDate: '2026-06-05', description: 'Routine PRV calibration based on quarterly schedule.', suspicionScore: 41, estRecoveryM3: 0, estRecoveryIDR: 0,
     updates: [
       { ts: '2026-05-29T14:30', user: 'Sari Wijaya', action: 'Created', note: 'Scheduled maintenance' },
       { ts: '2026-05-29T16:00', user: 'Dewi Anggraini', action: 'Assigned', note: '' }
     ], evidence: [] },
-  { id: 'WO-2026-0137', title: 'High suspicion - acoustic anomaly', zoneId: 'DMA-004', type: 'Inspection', priority: 'High', status: 'Completed', assignee: 'Field Team Bravo', createdBy: 'Budi Santoso', createdAt: '2026-05-22T09:00:00', dueDate: '2026-05-30', description: 'Acoustic sensor flagged sustained noise pattern at Kebayoran service line.', suspicionScore: 71, estRecoveryM3: 1500, estRecoveryIDR: 7500000, actualRecoveryM3: 1620, actualRecoveryIDR: 8100000,
+  { id: 'WO-2026-0137', title: 'High suspicion - acoustic anomaly', zoneId: 'DMA-004', type: 'Inspection', priority: 'High', status: 'Completed', assignee: 'Tim Cirebon Bravo', createdBy: 'Budi Santoso', createdAt: '2026-05-22T09:00:00', dueDate: '2026-05-30', description: 'Acoustic sensor flagged sustained noise pattern at Plered service line.', suspicionScore: 71, estRecoveryM3: 1500, estRecoveryIDR: 7500000, actualRecoveryM3: 1620, actualRecoveryIDR: 8100000,
     updates: [
       { ts: '2026-05-22T09:00', user: 'Budi Santoso', action: 'Created', note: '' },
       { ts: '2026-05-22T13:00', user: 'Dewi Anggraini', action: 'Assigned', note: '' },
-      { ts: '2026-05-25T10:00', user: 'Field Team Bravo', action: 'In Progress', note: 'Located leak at service line connection' },
-      { ts: '2026-05-26T14:00', user: 'Field Team Bravo', action: 'Completed', note: 'Repair complete, awaiting verification cycle' }
+      { ts: '2026-05-25T10:00', user: 'Tim Cirebon Bravo', action: 'In Progress', note: 'Located leak at service line connection' },
+      { ts: '2026-05-26T14:00', user: 'Tim Cirebon Bravo', action: 'Completed', note: 'Repair complete, awaiting verification cycle' }
     ],
     evidence: [
       { type: 'photo', label: 'Leak located', ts: '2026-05-25T10:30' },
       { type: 'photo', label: 'Repair complete', ts: '2026-05-26T14:00' }
     ] },
-  { id: 'WO-2026-0136', title: 'Sensor SNR-0019 offline > 48h', zoneId: 'DMA-003', type: 'Maintenance', priority: 'Medium', status: 'InProgress', assignee: 'Field Team Delta', createdBy: 'System', createdAt: '2026-05-31T03:15:00', dueDate: '2026-06-04', description: 'Pressure sensor offline since 2026-05-29 01:30. Battery reading was 23% before disconnect.', suspicionScore: 0, estRecoveryM3: 0, estRecoveryIDR: 0,
+  { id: 'WO-2026-0136', title: 'Sensor SNR-0019 offline > 48h', zoneId: 'DMA-003', type: 'Maintenance', priority: 'Medium', status: 'InProgress', assignee: 'Tim Indramayu Delta', createdBy: 'System', createdAt: '2026-05-31T03:15:00', dueDate: '2026-06-04', description: 'Pressure sensor offline since 2026-05-29 01:30. Battery reading was 23% before disconnect.', suspicionScore: 0, estRecoveryM3: 0, estRecoveryIDR: 0,
     updates: [
       { ts: '2026-05-31T03:15', user: 'System', action: 'Created', note: 'Auto-generated' },
       { ts: '2026-06-01T08:00', user: 'Dewi Anggraini', action: 'Assigned', note: '' },
-      { ts: '2026-06-02T07:30', user: 'Field Team Delta', action: 'In Progress', note: 'En route with replacement battery' }
+      { ts: '2026-06-02T07:30', user: 'Tim Indramayu Delta', action: 'In Progress', note: 'En route with replacement battery' }
     ], evidence: [] },
   { id: 'WO-2026-0135', title: 'Verify commercial loss recovery', zoneId: 'DMA-005', type: 'Verification', priority: 'Low', status: 'Closed', assignee: 'Sari Wijaya', createdBy: 'Sari Wijaya', createdAt: '2026-05-05T10:00:00', dueDate: '2026-05-15', closedAt: '2026-05-14T17:00', description: 'Confirm billing correction and meter replacements yielded expected revenue recovery.', suspicionScore: 58, estRecoveryM3: 880, estRecoveryIDR: 4400000, actualRecoveryM3: 720, actualRecoveryIDR: 3600000,
     updates: [
@@ -289,8 +295,9 @@ const CUSTOMER_NAMES = [
   'Bagus Wicaksono', 'Tika Saraswati', 'Hari Mulyadi', 'Selly Wahyuni', 'Reza Mahendra',
   'Vera Anggraeni', 'Pandu Saputro', 'Linda Permana', 'Aji Pranoto', 'Wulan Sari',
   'Erik Halim', 'Tania Maharani', 'Doni Permana', 'Citra Dewi', 'Yoga Pratama',
-  'Hotel Senayan Indah', 'PT Tirta Sejahtera', 'Apartemen Kemang Heights', 'RS Mutiara Sehat',
-  'Mall Gambir Plaza', 'Hotel Kuningan Park', 'PT Industri Cilandak', 'Mall Pondok Indah'
+  'Hotel Bentani Cirebon', 'PT Kilang Pertamina Balongan', 'Apartemen Indramayu Permai', 'RSUD Gunung Jati',
+  'Cirebon Super Block Mall', 'Hotel Aston Cirebon', 'PT Industri Tekstil Sumber', 'Indramayu City Mall',
+  'Keraton Kasepuhan Heritage', 'PT Pupuk Kujang Indramayu'
 ];
 
 const ANOMALY_TYPES = [
@@ -373,13 +380,13 @@ pipeConnections.forEach(([a, b], i) => {
 // ============ NOTIFICATIONS ============
 export const NOTIFICATIONS = [
   { id: 'NTF-2026-0012', ts: '2026-06-02T07:45:00', type: 'alarm_critical', title: 'Critical alarm in DMA-003', message: 'Pressure dropped 1.3 bar in 8 min', target: 'DMA-003', read: false },
-  { id: 'NTF-2026-0011', ts: '2026-06-02T07:20:00', type: 'wo_due', title: 'WO-2026-0140 due today', message: 'Customer meter audit · Field Team Charlie', target: 'WO-2026-0140', read: false },
+  { id: 'NTF-2026-0011', ts: '2026-06-02T07:20:00', type: 'wo_due', title: 'WO-2026-0140 due today', message: 'Customer meter audit · Tim Indramayu Charlie', target: 'WO-2026-0140', read: false },
   { id: 'NTF-2026-0010', ts: '2026-06-02T06:15:00', type: 'alarm_high', title: 'High alarm in DMA-007', message: 'Over-pressure threshold exceeded', target: 'DMA-007', read: false },
   { id: 'NTF-2026-0009', ts: '2026-06-01T22:15:00', type: 'sensor_offline', title: 'Sensor offline', message: 'SNR-0058 lost communication for 6+ hours', target: 'SNR-0058', read: false },
-  { id: 'NTF-2026-0008', ts: '2026-06-01T17:30:00', type: 'wo_complete', title: 'Work order completed', message: 'WO-2026-0137 · Kebayoran service line repair', target: 'WO-2026-0137', read: true },
+  { id: 'NTF-2026-0008', ts: '2026-06-01T17:30:00', type: 'wo_complete', title: 'Work order completed', message: 'WO-2026-0137 · Plered service line repair', target: 'WO-2026-0137', read: true },
   { id: 'NTF-2026-0007', ts: '2026-06-01T16:00:00', type: 'intervention', title: 'Recovery confirmed', message: 'INT-2026-0089 exceeded estimate by 7.8%', target: 'INT-2026-0089', read: true },
   { id: 'NTF-2026-0006', ts: '2026-06-01T11:00:00', type: 'commercial', title: 'Commercial anomaly detected', message: '7 zero-consumption customers in DMA-010', target: 'DMA-010', read: true },
-  { id: 'NTF-2026-0005', ts: '2026-05-31T14:30:00', type: 'wo_assigned', title: 'Work order assigned', message: 'WO-2026-0141 → Field Team Bravo', target: 'WO-2026-0141', read: true }
+  { id: 'NTF-2026-0005', ts: '2026-05-31T14:30:00', type: 'wo_assigned', title: 'Work order assigned', message: 'WO-2026-0141 → Tim Cirebon Bravo', target: 'WO-2026-0141', read: true }
 ];
 
 // ============ ACTIVITY FEED ============
@@ -389,7 +396,7 @@ export const ACTIVITY_FEED = [
   { ts: '2026-06-02T03:15:00', type: 'alarm', iconName: 'triangle-alert', text: 'Night flow exceeded baseline +156% in DMA-003', target: 'DMA-003' },
   { ts: '2026-06-01T17:00:00', type: 'wo', iconName: 'check', text: 'WO-2026-0137 marked complete', target: 'WO-2026-0137' },
   { ts: '2026-06-01T16:00:00', type: 'intervention', iconName: 'waves', text: 'INT-2026-0089: 3,450 m³ recovered', target: 'INT-2026-0089' },
-  { ts: '2026-06-01T14:22:00', type: 'wo', iconName: 'clipboard-list', text: 'WO-2026-0142 assigned to Field Team Alpha', target: 'WO-2026-0142' },
+  { ts: '2026-06-01T14:22:00', type: 'wo', iconName: 'clipboard-list', text: 'WO-2026-0142 assigned to Tim Cirebon Alpha', target: 'WO-2026-0142' },
   { ts: '2026-06-01T11:00:00', type: 'commercial', iconName: 'banknote', text: '7 zero-consumption customers detected in DMA-010', target: 'DMA-010' },
   { ts: '2026-06-01T09:30:00', type: 'wo', iconName: 'clipboard-list', text: 'WO-2026-0141 created from pressure alert', target: 'WO-2026-0141' },
   { ts: '2026-05-31T20:00:00', type: 'alarm', iconName: 'triangle-alert', text: 'Night flow trending high in DMA-010 for 5 nights', target: 'DMA-010' },
@@ -400,10 +407,10 @@ export const ACTIVITY_FEED = [
 
 // ============ TEAMS ============
 export const TEAMS = [
-  { id: 'TEAM-A', name: 'Field Team Alpha', lead: 'Pak Sutrisno', members: 4, region: 'Jakarta Pusat', specialties: ['Leak detection', 'Burst repair'], status: 'active', activeWO: 1 },
-  { id: 'TEAM-B', name: 'Field Team Bravo', lead: 'Pak Hendrik', members: 4, region: 'Jakarta Selatan', specialties: ['Pressure management', 'PRV calibration'], status: 'active', activeWO: 1 },
-  { id: 'TEAM-C', name: 'Field Team Charlie', lead: 'Pak Yudi', members: 3, region: 'Jakarta Pusat', specialties: ['Customer audit', 'Meter replacement'], status: 'active', activeWO: 1 },
-  { id: 'TEAM-D', name: 'Field Team Delta', lead: 'Pak Rachman', members: 3, region: 'Jakarta Selatan', specialties: ['Sensor maintenance', 'Network repair'], status: 'active', activeWO: 2 }
+  { id: 'TEAM-A', name: 'Tim Cirebon Alpha', lead: 'Pak Sutrisno', members: 4, region: 'Cirebon', specialties: ['Leak detection', 'Burst repair'], status: 'active', activeWO: 1 },
+  { id: 'TEAM-B', name: 'Tim Cirebon Bravo', lead: 'Pak Hendrik', members: 4, region: 'Cirebon', specialties: ['Pressure management', 'PRV calibration'], status: 'active', activeWO: 1 },
+  { id: 'TEAM-C', name: 'Tim Indramayu Charlie', lead: 'Pak Yudi', members: 3, region: 'Indramayu', specialties: ['Customer audit', 'Meter replacement'], status: 'active', activeWO: 1 },
+  { id: 'TEAM-D', name: 'Tim Indramayu Delta', lead: 'Pak Rachman', members: 3, region: 'Indramayu', specialties: ['Sensor maintenance', 'Network repair'], status: 'active', activeWO: 2 }
 ];
 
 // ============ HARDWARE / DEVICES ============
@@ -541,7 +548,7 @@ CUSTOMERS.filter(c => c.anomalies.length).slice(0, 18).forEach(c => {
     detectedAt: created.toISOString().slice(0, 10),
     dueDate: due.toISOString().slice(0, 10),
     closedAt: ['Resolved', 'WrittenOff'].includes(status) ? '2026-05-25' : null,
-    assignee: ['Sari Wijaya', 'Dewi Anggraini', 'Field Team Charlie'][caseCounter % 3],
+    assignee: ['Sari Wijaya', 'Dewi Anggraini', 'Tim Indramayu Charlie'][caseCounter % 3],
     priority: CASE_TYPES[type].priority,
     description: `${CASE_TYPES[type].label} detected for customer ${c.name} (${c.id}) in zone ${c.zoneName}. ${monthsAffected} months affected.`,
     updates: [
@@ -557,25 +564,25 @@ CASES.unshift({
   id: 'CASE-0019',
   type: 'illegal_connection',
   status: 'InAudit',
-  customerId: null, customerName: '23 customers — Gambir cluster', customerType: 'Cluster',
-  zoneId: 'DMA-010', zoneName: 'Gambir Heritage',
+  customerId: null, customerName: '23 customers — Jatibarang cluster', customerType: 'Cluster',
+  zoneId: 'DMA-010', zoneName: 'Jatibarang Hub',
   estRevenueLossIDR: 145000000, estRecoveryIDR: 87000000, monthsAffected: 6,
   detectedAt: '2026-05-25', dueDate: '2026-06-15', closedAt: null,
-  assignee: 'Field Team Charlie', priority: 'Critical',
-  description: 'Cluster of 23 customers in Gambir Heritage with zero consumption for 4+ months. Sub-surface inspection revealed possible illegal tap upstream. Coordinated audit + structural inspection required.',
+  assignee: 'Tim Indramayu Charlie', priority: 'Critical',
+  description: 'Cluster of 23 customers in Jatibarang Hub with zero consumption for 4+ months. Sub-surface inspection revealed possible illegal tap upstream. Coordinated audit + structural inspection required.',
   updates: [
     { ts: '2026-05-25T11:00:00', user: 'System', action: 'Detected', note: 'Cluster flagged by zone-level commercial analytics' },
     { ts: '2026-05-25T14:30:00', user: 'Sari Wijaya', action: 'Triaged', note: 'Escalated to Critical — likely illegal tap' },
-    { ts: '2026-05-27T10:00:00', user: 'Field Team Charlie', action: 'In Audit', note: 'Started door-to-door, 18/23 customers audited' },
-    { ts: '2026-05-31T16:40:00', user: 'Field Team Charlie', action: 'Field Note', note: '4 broken meters, 2 inactive (verified vacated), 12 normal usage with meter reading error; 5 households still pending visit' }
+    { ts: '2026-05-27T10:00:00', user: 'Tim Indramayu Charlie', action: 'In Audit', note: 'Started door-to-door, 18/23 customers audited' },
+    { ts: '2026-05-31T16:40:00', user: 'Tim Indramayu Charlie', action: 'Field Note', note: '4 broken meters, 2 inactive (verified vacated), 12 normal usage with meter reading error; 5 households still pending visit' }
   ]
 });
 
 // ============ METER REPLACEMENT CAMPAIGNS ============
 export const CAMPAIGNS = [
   { id: 'CMP-2026-001', name: 'Q2 2026 — Meter age 15+ replacement', status: 'active', startedAt: '2026-04-01', plannedEnd: '2026-07-31', targetCount: 412, completedCount: 187, scheduledCount: 95, zoneIds: ['DMA-001', 'DMA-003', 'DMA-005', 'DMA-007', 'DMA-009'], expectedRecoveryIDR: 850000000, type: 'meter_age', description: 'Replace all customer meters older than 15 years across high-priority zones.' },
-  { id: 'CMP-2026-002', name: 'Senayan cluster — Mass audit', status: 'active', startedAt: '2026-05-15', plannedEnd: '2026-06-30', targetCount: 87, completedCount: 32, scheduledCount: 20, zoneIds: ['DMA-003'], expectedRecoveryIDR: 245000000, type: 'audit', description: 'Door-to-door audit of zero-consumption + sudden-drop customers in Senayan Residential.' },
-  { id: 'CMP-2026-003', name: 'Gambir illegal connection sweep', status: 'planning', startedAt: '2026-06-10', plannedEnd: '2026-07-31', targetCount: 145, completedCount: 0, scheduledCount: 35, zoneIds: ['DMA-010'], expectedRecoveryIDR: 320000000, type: 'illegal', description: 'Structural inspection + customer audit to identify illegal connections upstream of Gambir DMA inlet.' },
+  { id: 'CMP-2026-002', name: 'Sumber cluster — Mass audit', status: 'active', startedAt: '2026-05-15', plannedEnd: '2026-06-30', targetCount: 87, completedCount: 32, scheduledCount: 20, zoneIds: ['DMA-003'], expectedRecoveryIDR: 245000000, type: 'audit', description: 'Door-to-door audit of zero-consumption + sudden-drop customers in Sumber Kabupaten.' },
+  { id: 'CMP-2026-003', name: 'Jatibarang illegal connection sweep', status: 'planning', startedAt: '2026-06-10', plannedEnd: '2026-07-31', targetCount: 145, completedCount: 0, scheduledCount: 35, zoneIds: ['DMA-010'], expectedRecoveryIDR: 320000000, type: 'illegal', description: 'Structural inspection + customer audit to identify illegal connections upstream of Jatibarang DMA inlet.' },
   { id: 'CMP-2026-000', name: 'Q1 2026 — High-volume customer review', status: 'completed', startedAt: '2026-01-15', plannedEnd: '2026-03-31', targetCount: 64, completedCount: 64, scheduledCount: 0, zoneIds: ['DMA-002', 'DMA-006', 'DMA-008'], expectedRecoveryIDR: 420000000, actualRecoveryIDR: 378000000, type: 'audit', description: 'Audit of all top-quartile commercial customers — completed.' }
 ];
 

@@ -192,7 +192,7 @@ function renderShell() {
           <div class="w-9 h-9 bg-gradient-to-br from-sky-500 to-sky-700 rounded-lg grid place-items-center text-white font-bold text-[12px] tracking-wide shrink-0">NRW</div>
           <div class="brand-text flex-1 min-w-0">
             <div class="text-slate-100 font-semibold text-[13px]">Recovery System</div>
-            <div class="text-slate-500 text-[11px] mt-0.5">PDAM Jakarta · Pilot</div>
+            <div class="text-slate-500 text-[11px] mt-0.5">Cirebon × Indramayu · Pilot</div>
           </div>
         </div>
         <nav class="p-2 flex-1">
@@ -349,7 +349,7 @@ function handleRoute() {
     map: ['Network Map', 'Zones, pipes, sensors, work orders, alarms'],
     reports: ['Reports & Analytics', 'Drill down into NRW, pressure, commercial, recovery'],
     workorders: ['Work Order Management', 'Inspection, intervention, verification queue'],
-    zones: ['Zones / DMA', `${NRW.KPI.totalZones} zones across Jakarta pilot`],
+    zones: ['Zones / DMA', `${NRW.KPI.totalZones} zones · Cirebon + Indramayu pilot`],
     sensors: ['Sensor Network', `${NRW.KPI.totalSensors} sensors · ${NRW.KPI.sensorUptime}% uptime`],
     alarms: ['Alarm Center', `${NRW.KPI.activeAlarms} active · ${NRW.KPI.criticalAlarms} critical`],
     customers: ['Customers', `${NRW.CUSTOMERS.length} customers across pilot zones`],
@@ -531,7 +531,7 @@ function renderDashboard(root) {
   Charts.recoveryTrend('chart-recovery');
   Charts.sparkline('spark-nrw', nrwHistory, '#0ea5e9');
   Charts.sparkline('spark-rec', recoveryHistory, '#10b981');
-  initMap('mini-map', { mini: true, zoom: 11 });
+  initMap('mini-map', { mini: true, zoom: 9 });
   root.querySelectorAll('[data-zone]').forEach(b => b.addEventListener('click', () => openZoneDrawer(b.dataset.zone)));
   root.querySelector('#qa-create-wo')?.addEventListener('click', () => openCreateWOModal());
   root.querySelectorAll('[data-qa-nav]').forEach(b => b.addEventListener('click', () => location.hash = `#/${b.dataset.qaNav}`));
@@ -604,7 +604,7 @@ function renderMap(root) {
       </div>
     </div>
   `;
-  initMap('full-map', { zoom: 12 });
+  initMap('full-map', { zoom: 10 });
   setOnDrill((kind, data) => {
     if (kind === 'zone') openZoneDrawer(data.id);
     else if (kind === 'sensor') openSensorDrawer(data.id);
@@ -630,7 +630,7 @@ function renderReports(root) {
       <div class="flex items-center gap-1.5"><label class="text-[11px] text-slate-400 uppercase tracking-wide">Period</label>
         <select class="select-input"><option>Last 30 days</option><option>Last 90 days</option><option>YTD</option></select></div>
       <div class="flex items-center gap-1.5"><label class="text-[11px] text-slate-400 uppercase tracking-wide">Region</label>
-        <select class="select-input"><option>All regions</option><option>Jakarta Pusat</option><option>Jakarta Selatan</option></select></div>
+        <select class="select-input"><option>All regions</option><option>Cirebon</option><option>Indramayu</option></select></div>
       <div class="flex items-center gap-1.5"><label class="text-[11px] text-slate-400 uppercase tracking-wide">Class</label>
         <select class="select-input"><option>All</option><option>Critical</option><option>High</option><option>Medium</option><option>Low</option></select></div>
       <div class="flex-1"></div>
@@ -2188,7 +2188,7 @@ function renderCommercialMap(root) {
     </div>
   `;
 
-  initCommercialMap('commercial-map-canvas', { zoom: 12 });
+  initCommercialMap('commercial-map-canvas', { zoom: 10 });
   setCommercialOnDrill((kind, data) => {
     if (kind === 'zone') openZoneDrawer(data.id);
     else if (kind === 'case') openCaseDrawer(data.id);
@@ -2225,7 +2225,7 @@ function renderSavings(root) {
   const waterProgress = Math.round((totalWater / annualTargetWater) * 100);
   const revenueProgress = Math.round((totalRevenue / annualTargetRevenue) * 100);
 
-  const colors = { 'Jakarta Pusat': '#0ea5e9', 'Jakarta Selatan': '#10b981', 'Jakarta Barat': '#f59e0b', 'Jakarta Timur': '#a855f7', 'Jakarta Utara': '#ef4444' };
+  const colors = { 'Cirebon': '#0ea5e9', 'Indramayu': '#10b981' };
 
   const zoneLeaderboard = [...NRW.ZONES].map(z => {
     const zInts = NRW.INTERVENTIONS.filter(i => i.zoneId === z.id);
@@ -2252,7 +2252,7 @@ function renderSavings(root) {
           return aggZones.includes(i.zoneId) && id.getMonth() === d.getMonth() && id.getFullYear() === d.getFullYear();
         });
         const water = monthInts.reduce((s, i) => s + i.waterRecoveredM3, 0);
-        ds.data.push(water || +(800 + Math.sin(m * 0.7) * 400 + (ds.region === 'Jakarta Selatan' ? 600 : 200)).toFixed(0));
+        ds.data.push(water || +(800 + Math.sin(m * 0.7) * 400 + (ds.region === 'Indramayu' ? 600 : 200)).toFixed(0));
       });
     }
     return { labels, datasets };
@@ -2832,9 +2832,9 @@ function openZoneFormModal(zone = null) {
     subtitle: isEdit ? 'Update zone master data' : 'Add a new DMA or pressure zone to the network',
     size: 'md',
     body: `<form id="zone-form" class="flex flex-col gap-3">
-      ${field('Zone name', 'name', zone?.name || '', { required: true, placeholder: 'e.g. Menteng North' })}
+      ${field('Zone name', 'name', zone?.name || '', { required: true, placeholder: 'e.g. Cirebon Utara' })}
       <div class="grid grid-cols-2 gap-3">
-        ${selectField('Region', 'region', ['Jakarta Pusat', 'Jakarta Selatan', 'Jakarta Barat', 'Jakarta Timur', 'Jakarta Utara'], zone?.region || 'Jakarta Pusat', { required: true })}
+        ${selectField('Region', 'region', ['Cirebon', 'Indramayu'], zone?.region || 'Cirebon', { required: true })}
         ${selectField('Type', 'type', ['DMA', 'Pressure Zone', 'Branch Zone'], zone?.type || 'DMA', { required: true })}
       </div>
       <div class="grid grid-cols-3 gap-3">
@@ -3024,7 +3024,7 @@ function openTeamFormModal(team = null) {
         ${field('Team lead', 'lead', team?.lead || '', { required: true, placeholder: 'e.g. Pak Joko' })}
         ${field('Members', 'members', team?.members ?? 3, { type: 'number' })}
       </div>
-      ${selectField('Region', 'region', ['Jakarta Pusat', 'Jakarta Selatan', 'Jakarta Barat', 'Jakarta Timur', 'Jakarta Utara'], team?.region || 'Jakarta Pusat')}
+      ${selectField('Region', 'region', ['Cirebon', 'Indramayu'], team?.region || 'Cirebon')}
       ${field('Specialties (comma-separated)', 'specialties', (team?.specialties || []).join(', '), { placeholder: 'Leak detection, Burst repair' })}
       ${selectField('Status', 'status', ['active', 'on-leave', 'training'], team?.status || 'active')}
     </form>`,

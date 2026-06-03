@@ -26,7 +26,7 @@ let popupOverlay = null;
 let onDrillFn = null;
 
 export function initMap(containerId, options = {}) {
-  const { center = JAKARTA_CENTER, zoom = 12, mini = false } = options;
+  const { center = JAKARTA_CENTER, zoom = 10, mini = false } = options;
   const projection = fromLonLat(center);
 
   zoneLayer = new VectorLayer({ source: new VectorSource({ features: buildZoneFeatures() }), style: zoneStyle, zIndex: 1 });
@@ -347,7 +347,7 @@ export function focusZone(zoneId, opts = {}) {
   const zone = getZone(zoneId);
   if (!zone || !mapInstance) return;
   const extent = transformExtent(zone.bbox, 'EPSG:4326', 'EPSG:3857');
-  mapInstance.getView().fit(extent, { duration: 500, padding: [50, 50, 50, 50], maxZoom: 16 });
+  mapInstance.getView().fit(extent, { duration: 500, padding: [50, 50, 50, 50], maxZoom: 15 });
   if (opts.openPopup) {
     const feature = zoneLayer.getSource().getFeatureById(zoneId);
     if (feature) showPopup(feature, fromLonLat(zone.center));
@@ -356,7 +356,7 @@ export function focusZone(zoneId, opts = {}) {
 
 export function resetView() {
   if (!mapInstance) return;
-  mapInstance.getView().animate({ center: fromLonLat(JAKARTA_CENTER), zoom: 12, duration: 400 });
+  mapInstance.getView().animate({ center: fromLonLat(JAKARTA_CENTER), zoom: 10, duration: 400 });
 }
 
 export function setOnDrill(fn) { onDrillFn = fn; }
@@ -415,7 +415,7 @@ let commercialPopupOverlay = null;
 let commercialOnDrillFn = null;
 
 export function initCommercialMap(containerId, options = {}) {
-  const { center = JAKARTA_CENTER, zoom = 12 } = options;
+  const { center = JAKARTA_CENTER, zoom = 10 } = options;
   const projection = fromLonLat(center);
 
   commercialZoneLayer = new VectorLayer({
@@ -558,5 +558,5 @@ export function focusCommercialZone(zoneId) {
   const zone = ZONES.find(z => z.id === zoneId);
   if (!zone || !commercialMapInstance) return;
   const extent = transformExtent(zone.bbox, 'EPSG:4326', 'EPSG:3857');
-  commercialMapInstance.getView().fit(extent, { duration: 500, padding: [50, 50, 50, 50], maxZoom: 16 });
+  commercialMapInstance.getView().fit(extent, { duration: 500, padding: [50, 50, 50, 50], maxZoom: 15 });
 }
