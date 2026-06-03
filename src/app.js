@@ -9,7 +9,7 @@ import { startRealtime, subscribeRealtime, getStream, getStats, getTickRate } fr
 import { getCurrentUser, isLoggedIn, logout } from './auth.js';
 import { renderLogin } from './login.js';
 
-const VIEWS = ['dashboard', 'map', 'reports', 'workorders', 'zones', 'sensors', 'alarms', 'customers', 'analytics', 'schedule', 'teams', 'hardware'];
+const VIEWS = ['dashboard', 'map', 'reports', 'workorders', 'zones', 'sensors', 'alarms', 'customers', 'commercial', 'analytics', 'schedule', 'teams', 'hardware'];
 let currentView = 'dashboard';
 let currentReportTab = 'nrw';
 let lastDrawer = null;
@@ -17,6 +17,7 @@ let lastDrawer = null;
 const state = {
   wo: { status: State.getFilter('wo.status') || 'all', priority: State.getFilter('wo.priority') || 'all', zone: State.getFilter('wo.zone') || 'all' },
   cust: { zone: 'all', anomaly: 'all' },
+  cases: { status: 'all', type: 'all', zone: 'all' },
   analytics: { selectedZones: ['DMA-001', 'DMA-003', 'DMA-007', 'DMA-010'] }
 };
 
@@ -154,6 +155,7 @@ function renderShell() {
           <a class="nav-item" data-view="alarms" href="#/alarms">${icon('triangle-alert', 'nav-icon')}<span>Alarms</span><span class="nav-badge nav-badge-danger">${NRW.KPI.activeAlarms}</span></a>
           <div class="text-[10px] uppercase tracking-widest text-slate-500 px-2.5 pt-3.5 pb-1.5">Customers & Data</div>
           <a class="nav-item" data-view="customers" href="#/customers">${icon('building-2', 'nav-icon')}<span>Customers</span></a>
+          <a class="nav-item" data-view="commercial" href="#/commercial">${icon('banknote', 'nav-icon')}<span>Commercial</span><span class="nav-badge nav-badge-warn">${NRW.CASES.filter(c => !['Resolved', 'WrittenOff'].includes(c.status)).length}</span></a>
           <a class="nav-item" data-view="analytics" href="#/analytics">${icon('activity', 'nav-icon')}<span>MNF Analytics</span></a>
           <a class="nav-item" data-view="reports" href="#/reports">${icon('bar-chart-3', 'nav-icon')}<span>Reports</span></a>
         </nav>
@@ -234,6 +236,8 @@ function bindSearch() {
       .slice(0, 3).forEach(c => hits.push({ kind: 'customer', id: c.id, label: c.name, sub: `${c.id} · ${c.zoneName}` }));
     NRW.DEVICES.filter(d => d.id.toLowerCase().includes(q) || d.location.toLowerCase().includes(q))
       .slice(0, 3).forEach(d => hits.push({ kind: 'device', id: d.id, label: d.id, sub: `${d.location} · ${d.firmware}` }));
+    NRW.CASES.filter(c => c.id.toLowerCase().includes(q) || c.customerName.toLowerCase().includes(q))
+      .slice(0, 3).forEach(c => hits.push({ kind: 'case', id: c.id, label: `${c.id} · ${c.customerName}`, sub: `${NRW.caseTypeLabel(c.type)} · ${c.status}` }));
     if (!hits.length) {
       results.innerHTML = `<div class="p-3.5 text-center text-slate-400">No results for "${q}"</div>`;
     } else {
@@ -264,6 +268,7 @@ function openByKind(kind, id) {
   else if (kind === 'alarm') openAlarmDrawer(id);
   else if (kind === 'team') openTeamDrawer(id);
   else if (kind === 'device') openDeviceDrawer(id);
+  else if (kind === 'case') openCaseDrawer(id);
 }
 
 function handleRoute() {
@@ -285,7 +290,8 @@ function handleRoute() {
     analytics: ['MNF Analytics', 'Minimum night flow trends and zone comparison'],
     schedule: ['Schedule', 'Work order calendar and field team assignments'],
     teams: ['Field Teams', `${NRW.TEAMS.length} teams · current workload and availability`],
-    hardware: ['Hardware Live', `${NRW.DEVICES.length} telemetric devices · live MQTT stream`]
+    hardware: ['Hardware Live', `${NRW.DEVICES.length} telemetric devices · live MQTT stream`],
+    commercial: ['Commercial Loss Management', `${NRW.CASES.filter(c => !['Resolved', 'WrittenOff'].includes(c.status)).length} open cases · ${NRW.CAMPAIGNS.filter(c => c.status === 'active').length} active campaigns`]
   };
   document.getElementById('view-title').textContent = titles[view][0];
   document.getElementById('view-sub').textContent = titles[view][1];
@@ -308,6 +314,7 @@ function renderView(view) {
     case 'schedule': return renderSchedule(root);
     case 'teams': return renderTeams(root);
     case 'hardware': return renderHardware(root);
+    case 'commercial': return renderCommercial(root);
   }
 }
 
@@ -1838,6 +1845,347 @@ function closeNotifPanel() {
   document.removeEventListener('click', notifOutsideClick);
 }
 
+// ============ COMMERCIAL ============
+function renderCommercial(root) {
+  const filtered = NRW.CASES.filter(c => {
+    if (state.cases.status !== 'all' && c.status !== state.cases.status) return false;
+    if (state.cases.type !== 'all' && c.type !== state.cases.type) return false;
+    if (state.cases.zone !== 'all' && c.zoneId !== state.cases.zone) return false;
+    return true;
+  });
+  const openCases = NRW.CASES.filter(c => !['Resolved', 'WrittenOff'].includes(c.status));
+  const totalAtRisk = openCases.reduce((s, c) => s + c.estRevenueLossIDR, 0);
+  const resolvedRev = NRW.CASES.filter(c => c.status === 'Resolved').reduce((s, c) => s + c.estRecoveryIDR, 0);
+  const activeCampaigns = NRW.CAMPAIGNS.filter(c => c.status === 'active').length;
+  const writtenOff = NRW.CASES.filter(c => c.status === 'WrittenOff').reduce((s, c) => s + c.estRevenueLossIDR, 0);
+
+  root.innerHTML = `
+    <div class="grid grid-cols-[repeat(auto-fit,minmax(220px,1fr))] gap-3">
+      ${kpiCard('Open cases', openCases.length, `${NRW.CASES.filter(c => c.priority === 'Critical' && !['Resolved','WrittenOff'].includes(c.status)).length} critical`, 'warn', 'circle-alert')}
+      ${kpiCard('Revenue at risk', NRW.formatIDR(totalAtRisk), 'across open cases', 'bad', 'banknote')}
+      ${kpiCard('Recovered (resolved)', NRW.formatIDR(resolvedRev), `${NRW.CASES.filter(c => c.status === 'Resolved').length} cases closed`, 'good', 'check')}
+      ${kpiCard('Active campaigns', activeCampaigns, `${NRW.CAMPAIGNS.reduce((s, c) => s + c.targetCount, 0).toLocaleString()} total targets`, 'info', 'briefcase')}
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-[2fr_1fr] gap-4">
+      <div class="card">
+        <div class="card-header">
+          <h3>Commercial cases · ${filtered.length} shown</h3>
+          <div class="flex gap-2 items-center flex-wrap">
+            <select class="select-input" id="cs-status"><option value="all">All status</option><option>Open</option><option>InAudit</option><option>AwaitingCustomer</option><option>PendingReplacement</option><option>Resolved</option><option>WrittenOff</option></select>
+            <select class="select-input" id="cs-type"><option value="all">All types</option><option value="zero_consumption">Zero consumption</option><option value="sudden_drop">Sudden drop</option><option value="meter_malfunction">Meter malfunction</option><option value="illegal_connection">Illegal connection</option><option value="billing_dispute">Billing dispute</option><option value="meter_age">Meter age</option></select>
+            <select class="select-input" id="cs-zone"><option value="all">All zones</option>${NRW.ZONES.map(z => `<option value="${z.id}">${z.name}</option>`).join('')}</select>
+            <button class="btn-primary flex items-center gap-1.5" id="new-case-btn">${icon('plus', 'w-3.5 h-3.5')} New Case</button>
+          </div>
+        </div>
+        <div class="overflow-x-auto"><table class="data-table">
+          <thead><tr><th>ID</th><th>Type</th><th>Customer</th><th>Zone</th><th>Months</th><th>Loss / Recovery</th><th>Priority</th><th>Status</th><th>Assignee</th><th>Due</th><th>Actions</th></tr></thead>
+          <tbody>${filtered.map(c => {
+            const overdue = c.dueDate && new Date(c.dueDate) < new Date('2026-06-02') && !['Resolved','WrittenOff'].includes(c.status);
+            return `<tr class="clickable" data-case="${c.id}">
+              <td><strong>${c.id}</strong></td>
+              <td><div class="flex items-center gap-1.5">${icon(NRW.caseTypeIcon(c.type), 'w-3.5 h-3.5 text-slate-500')}<span>${NRW.caseTypeLabel(c.type)}</span></div></td>
+              <td>${c.customerName}<div class="text-slate-400 text-[10px]">${c.customerType}</div></td>
+              <td>${c.zoneName}</td>
+              <td>${c.monthsAffected}</td>
+              <td>${NRW.formatIDR(c.estRevenueLossIDR)}<div class="text-emerald-600 text-[10px]">rec. ${NRW.formatIDR(c.estRecoveryIDR)}</div></td>
+              <td><span class="priority priority-${c.priority.toLowerCase()}">${c.priority}</span></td>
+              <td><span class="badge" style="background:${NRW.caseStatusColor(c.status)}">${c.status}</span></td>
+              <td>${c.assignee || '<span class="text-slate-400">unassigned</span>'}</td>
+              <td class="${overdue ? 'text-red-500' : ''}">${c.dueDate ? NRW.formatDate(c.dueDate) : '-'} ${overdue ? icon('triangle-alert', 'w-3 h-3 inline') : ''}</td>
+              <td class="!py-1"><div class="flex gap-0.5"><button class="row-action" data-edit-case="${c.id}" title="Edit">${icon('pencil', 'w-3 h-3')}</button><button class="row-action danger" data-delete-case="${c.id}" title="Delete">${icon('trash-2', 'w-3 h-3')}</button></div></td>
+            </tr>`;
+          }).join('') || '<tr><td colspan="11" class="text-center py-9 text-slate-400">No commercial cases match the current filters</td></tr>'}</tbody>
+        </table></div>
+      </div>
+
+      <div class="flex flex-col gap-4">
+        <div class="card">
+          <div class="card-header"><h3>Cases by status</h3></div>
+          <div class="p-3.5 relative" style="height:200px"><canvas id="chart-cases-status"></canvas></div>
+        </div>
+        <div class="card">
+          <div class="card-header"><h3>Revenue impact by type</h3></div>
+          <div class="p-3.5 relative" style="height:200px"><canvas id="chart-cases-impact"></canvas></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header">
+        <h3>Recovery campaigns</h3>
+        <button class="btn-primary flex items-center gap-1.5" id="new-campaign-btn">${icon('plus', 'w-3.5 h-3.5')} New Campaign</button>
+      </div>
+      <div class="p-3 grid grid-cols-1 lg:grid-cols-2 gap-3">
+        ${NRW.CAMPAIGNS.map(c => {
+          const pct = c.targetCount ? Math.round((c.completedCount / c.targetCount) * 100) : 0;
+          const sc = c.status === 'completed' ? 'good' : c.status === 'active' ? 'warn' : 'bad';
+          const statusBg = c.status === 'completed' ? '#10b981' : c.status === 'active' ? '#f59e0b' : '#94a3b8';
+          return `<div class="bg-slate-50 border border-slate-200 rounded-lg p-3.5 hover:shadow-md transition-shadow">
+            <div class="flex justify-between items-start gap-2 mb-2">
+              <div class="flex-1 min-w-0">
+                <div class="flex items-center gap-2"><strong class="text-sm">${c.name}</strong><span class="badge" style="background:${statusBg}">${c.status}</span></div>
+                <div class="text-slate-400 text-[11px] mt-0.5">${c.id} · ${NRW.formatDate(c.startedAt)} → ${NRW.formatDate(c.plannedEnd)}</div>
+              </div>
+            </div>
+            <div class="text-xs text-slate-600 mb-2.5">${c.description}</div>
+            <div class="flex justify-between text-[11px] mb-1"><span class="text-slate-500">Progress</span><span class="font-semibold">${c.completedCount}/${c.targetCount} (${pct}%)</span></div>
+            <div class="bar w-full !h-2 mb-2.5"><div class="bar-fill ${sc}" style="width:${pct}%"></div></div>
+            <div class="flex justify-between items-center text-[11px]">
+              <div>
+                <div class="text-slate-400 uppercase tracking-wide">Expected recovery</div>
+                <div class="font-bold text-sm">${NRW.formatIDR(c.expectedRecoveryIDR)}</div>
+              </div>
+              <div class="flex gap-1">
+                <button class="row-action" data-edit-campaign="${c.id}" title="Edit">${icon('pencil', 'w-3 h-3')}</button>
+                <button class="row-action danger" data-delete-campaign="${c.id}" title="Delete">${icon('trash-2', 'w-3 h-3')}</button>
+              </div>
+            </div>
+            <div class="flex gap-1 mt-2 flex-wrap">${c.zoneIds.map(z => `<span class="chip text-[9px]">${z}</span>`).join('')}</div>
+          </div>`;
+        }).join('')}
+      </div>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+      <div class="card">
+        <div class="card-header"><h3>Tariff structure</h3><span class="chip">${NRW.TARIFFS.length} tiers</span></div>
+        <div class="overflow-x-auto"><table class="data-table compact">
+          <thead><tr><th>Tier</th><th>Type</th><th>Rate (Rp/m³)</th><th>Notes</th></tr></thead>
+          <tbody>${NRW.TARIFFS.map(t => `<tr><td><strong>${t.tier}</strong></td><td><span class="chip ${t.type === 'Business' ? 'chip-success' : ''}">${t.type}</span></td><td>Rp ${t.rate.toLocaleString()}</td><td class="text-slate-500">${t.description}</td></tr>`).join('')}</tbody>
+        </table></div>
+      </div>
+      <div class="card">
+        <div class="card-header"><h3>Top revenue-at-risk zones</h3></div>
+        <div class="overflow-x-auto"><table class="data-table compact">
+          <thead><tr><th>Zone</th><th>Open cases</th><th>Months exposure</th><th>Loss estimate</th></tr></thead>
+          <tbody>${NRW.ZONES.map(z => {
+            const zoneCases = NRW.CASES.filter(c => c.zoneId === z.id && !['Resolved','WrittenOff'].includes(c.status));
+            const loss = zoneCases.reduce((s, c) => s + c.estRevenueLossIDR, 0);
+            const months = zoneCases.reduce((s, c) => s + c.monthsAffected, 0);
+            return { z, zoneCases, loss, months };
+          }).filter(r => r.zoneCases.length).sort((a, b) => b.loss - a.loss).slice(0, 6).map(r => `
+            <tr class="clickable" data-zone="${r.z.id}">
+              <td><strong>${r.z.name}</strong></td>
+              <td>${r.zoneCases.length}</td>
+              <td>${r.months}</td>
+              <td>${NRW.formatIDR(r.loss)}</td>
+            </tr>
+          `).join('')}</tbody>
+        </table></div>
+      </div>
+    </div>
+  `;
+
+  document.getElementById('cs-status').value = state.cases.status;
+  document.getElementById('cs-type').value = state.cases.type;
+  document.getElementById('cs-zone').value = state.cases.zone;
+  ['cs-status', 'cs-type', 'cs-zone'].forEach(id => document.getElementById(id).addEventListener('change', e => { state.cases[id.split('-')[1]] = e.target.value; renderCommercial(root); }));
+  root.querySelectorAll('[data-case]').forEach(r => r.addEventListener('click', () => openCaseDrawer(r.dataset.case)));
+  root.querySelectorAll('[data-edit-case]').forEach(b => b.addEventListener('click', e => { e.stopPropagation(); openCaseFormModal(NRW.getCase(b.dataset.editCase)); }));
+  root.querySelectorAll('[data-delete-case]').forEach(b => b.addEventListener('click', e => { e.stopPropagation(); deleteCase(b.dataset.deleteCase); }));
+  root.querySelectorAll('[data-edit-campaign]').forEach(b => b.addEventListener('click', e => { e.stopPropagation(); openCampaignFormModal(NRW.getCampaign(b.dataset.editCampaign)); }));
+  root.querySelectorAll('[data-delete-campaign]').forEach(b => b.addEventListener('click', e => { e.stopPropagation(); deleteCampaign(b.dataset.deleteCampaign); }));
+  root.querySelectorAll('[data-zone]').forEach(b => b.addEventListener('click', () => openZoneDrawer(b.dataset.zone)));
+  document.getElementById('new-case-btn').addEventListener('click', () => openCaseFormModal());
+  document.getElementById('new-campaign-btn').addEventListener('click', () => openCampaignFormModal());
+
+  // Charts
+  const statusCounts = {};
+  NRW.CASES.forEach(c => { statusCounts[c.status] = (statusCounts[c.status] || 0) + 1; });
+  Charts.customChart('chart-cases-status', {
+    type: 'doughnut',
+    data: { labels: Object.keys(statusCounts), datasets: [{ data: Object.values(statusCounts), backgroundColor: Object.keys(statusCounts).map(s => NRW.caseStatusColor(s)), borderWidth: 2, borderColor: '#fff' }] },
+    options: { responsive: true, maintainAspectRatio: false, cutout: '60%', plugins: { legend: { position: 'right', labels: { boxWidth: 8, font: { size: 10 } } } } }
+  });
+  const typeImpact = {};
+  NRW.CASES.forEach(c => { typeImpact[NRW.caseTypeLabel(c.type)] = (typeImpact[NRW.caseTypeLabel(c.type)] || 0) + c.estRevenueLossIDR; });
+  Charts.customChart('chart-cases-impact', {
+    type: 'bar',
+    data: { labels: Object.keys(typeImpact), datasets: [{ data: Object.values(typeImpact), backgroundColor: '#ef4444', borderRadius: 3, maxBarThickness: 18 }] },
+    options: { indexAxis: 'y', responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false }, tooltip: { callbacks: { label: ctx => NRW.formatIDR(ctx.parsed.x) } } }, scales: { x: { beginAtZero: true, grid: { color: 'rgba(148,163,184,0.2)' }, ticks: { callback: v => NRW.formatIDR(v) } }, y: { grid: { display: false }, ticks: { font: { size: 10 } } } } }
+  });
+
+  renderIcons();
+}
+
+function deleteCase(id) {
+  const c = NRW.getCase(id);
+  if (!c) return;
+  confirm({
+    title: 'Delete commercial case?',
+    message: `Case <strong>${c.id}</strong> for ${c.customerName} (loss estimate ${NRW.formatIDR(c.estRevenueLossIDR)}) will be removed from the case log.`,
+    confirmLabel: 'Delete case',
+    onConfirm: () => { State.deleteCase(id); toast(`Case ${id} deleted`, 'success'); closeDrawer(); rerender(); }
+  });
+}
+
+function deleteCampaign(id) {
+  const c = NRW.getCampaign(id);
+  if (!c) return;
+  confirm({
+    title: 'Delete campaign?',
+    message: `Campaign <strong>${c.name}</strong> will be removed. Cases generated from this campaign will remain.`,
+    confirmLabel: 'Delete campaign',
+    onConfirm: () => { State.deleteCampaign(id); toast(`Campaign ${id} deleted`, 'success'); rerender(); }
+  });
+}
+
+function openCaseDrawer(caseId) {
+  const c = NRW.getCase(caseId);
+  if (!c) return;
+  const customer = c.customerId ? NRW.getCustomer(c.customerId) : null;
+  const zone = NRW.getZone(c.zoneId);
+  const color = NRW.caseStatusColor(c.status);
+
+  openDrawer(`
+    <div class="px-6 py-5 border-b border-slate-200 flex justify-between items-start gap-3" style="border-left:5px solid ${color}">
+      <div>
+        <div class="text-[10px] uppercase tracking-wider text-slate-400 font-semibold mb-1">Commercial Case</div>
+        <h2>${NRW.caseTypeLabel(c.type)}</h2>
+        <div class="text-slate-400 mt-0.5">${c.id} · ${c.customerName} · Detected ${NRW.formatDate(c.detectedAt)}</div>
+      </div>
+      <button class="icon-btn" data-close>${icon('x', 'w-4 h-4')}</button>
+    </div>
+    <div class="flex-1 overflow-y-auto px-6 py-5 flex flex-col gap-5">
+      <div class="flex gap-2 items-center flex-wrap">
+        <span class="priority priority-${c.priority.toLowerCase()}">${c.priority}</span>
+        <span class="badge" style="background:${color}">${c.status}</span>
+        <span class="text-slate-500">${c.customerType}</span>
+        <div class="flex-1"></div>
+        <select class="select-input text-[11px]" id="case-status-select">
+          <option value="">Change status...</option>
+          <option value="Open">Open</option><option value="InAudit">In Audit</option>
+          <option value="AwaitingCustomer">Awaiting Customer</option><option value="PendingReplacement">Pending Replacement</option>
+          <option value="Resolved">Resolved</option><option value="WrittenOff">Written Off</option>
+        </select>
+      </div>
+      <div class="grid grid-cols-4 gap-2">
+        ${miniMetric('Customer', c.customerName)}
+        ${miniMetric('Zone', zone?.name || c.zoneId)}
+        ${miniMetric('Assignee', c.assignee || 'unassigned')}
+        ${miniMetric('Months affected', c.monthsAffected)}
+        ${miniMetric('Est. revenue loss', NRW.formatIDR(c.estRevenueLossIDR), '#dc2626')}
+        ${miniMetric('Est. recovery', NRW.formatIDR(c.estRecoveryIDR), '#10b981')}
+        ${miniMetric('Detected', NRW.formatDate(c.detectedAt))}
+        ${miniMetric('Due', c.dueDate ? NRW.formatDate(c.dueDate) : '-')}
+      </div>
+      <div><h4 class="mb-2.5">Description</h4><p class="text-slate-600 text-[13px] leading-relaxed">${c.description}</p></div>
+      <div>
+        <h4 class="mb-2.5">Case timeline</h4>
+        <div class="timeline">${c.updates.map(u => `
+          <div class="timeline-item"><div class="timeline-dot"></div>
+            <div><div class="flex justify-between gap-3"><strong>${u.action}</strong><span class="text-slate-400 text-[11px]">${NRW.formatDateTime(u.ts)} · ${u.user}</span></div>${u.note ? `<div class="text-slate-500 text-xs mt-1">${u.note}</div>` : ''}</div>
+          </div>`).join('')}</div>
+      </div>
+      ${customer ? `<div><h4 class="mb-2.5">Customer detail</h4><div class="bg-slate-50 border border-slate-200 rounded-lg p-3.5 cursor-pointer hover:bg-sky-50" data-customer="${customer.id}">
+        <div><strong>${customer.name}</strong> · ${customer.type}</div>
+        <div class="text-slate-400 text-[11px] mt-0.5">${customer.id} · Meter ${customer.meterId} (age ${customer.meterAge}y) · ${customer.zoneName}</div>
+        <div class="text-slate-500 text-xs mt-2">Avg monthly: ${customer.avgMonthly} m³ · Last reading: ${customer.lastReading} m³ on ${NRW.formatDate(customer.lastReadingDate)}</div>
+        <div class="text-slate-500 text-xs mt-1">Risk score: ${customer.riskScore}/100</div>
+      </div></div>` : ''}
+    </div>
+    <div class="px-6 py-3.5 border-t border-slate-200 flex gap-2 justify-end">
+      <button class="btn-secondary" data-close>Close</button>
+      <button class="btn-secondary flex items-center gap-1.5" id="case-edit">${icon('pencil', 'w-3.5 h-3.5')} Edit</button>
+      <button class="btn-danger flex items-center gap-1.5" id="case-delete">${icon('trash-2', 'w-3.5 h-3.5')} Delete</button>
+      <button class="btn-primary flex items-center gap-1.5" id="case-create-wo">${icon('plus', 'w-3.5 h-3.5')} Spawn Work Order</button>
+    </div>
+  `, { kind: 'case', id: caseId });
+  document.querySelectorAll('#drawer [data-customer]').forEach(b => b.addEventListener('click', () => openCustomerDrawer(b.dataset.customer)));
+  document.getElementById('case-edit').addEventListener('click', () => openCaseFormModal(c));
+  document.getElementById('case-delete').addEventListener('click', () => deleteCase(caseId));
+  document.getElementById('case-status-select').addEventListener('change', e => {
+    if (!e.target.value) return;
+    State.updateCaseStatus(c.id, e.target.value);
+    toast(`Case ${c.id} → ${e.target.value}`, 'success');
+    setTimeout(() => openCaseDrawer(caseId), 100);
+  });
+  document.getElementById('case-create-wo').addEventListener('click', () => openCreateWOModal({ zoneId: c.zoneId, type: 'Commercial', priority: c.priority, title: `Audit · ${c.customerName}`, description: c.description }));
+}
+
+function openCaseFormModal(caseObj = null) {
+  const isEdit = !!caseObj;
+  openModal({
+    title: isEdit ? `Edit case · ${caseObj.id}` : 'Open new commercial case',
+    subtitle: isEdit ? 'Update case details' : 'Manually log a commercial loss case',
+    size: 'md',
+    body: `<form id="case-form" class="flex flex-col gap-3">
+      ${selectField('Type', 'type', [
+        { value: 'zero_consumption', label: 'Zero consumption' },
+        { value: 'sudden_drop', label: 'Sudden drop' },
+        { value: 'meter_malfunction', label: 'Meter malfunction' },
+        { value: 'illegal_connection', label: 'Illegal connection' },
+        { value: 'billing_dispute', label: 'Billing dispute' },
+        { value: 'meter_age', label: 'Meter age' }
+      ], caseObj?.type || 'zero_consumption', { required: true })}
+      ${field('Customer name (or cluster description)', 'customerName', caseObj?.customerName || '', { required: true })}
+      <div class="grid grid-cols-2 gap-3">
+        ${selectField('Customer type', 'customerType', ['Residential', 'Business', 'Cluster'], caseObj?.customerType || 'Residential')}
+        ${selectField('Zone', 'zoneId', NRW.ZONES.map(z => ({ value: z.id, label: `${z.name} (${z.id})` })), caseObj?.zoneId || '', { required: true })}
+      </div>
+      <div class="grid grid-cols-3 gap-3">
+        ${selectField('Priority', 'priority', ['Low', 'Medium', 'High', 'Critical'], caseObj?.priority || 'Medium', { required: true })}
+        ${selectField('Status', 'status', ['Open', 'InAudit', 'AwaitingCustomer', 'PendingReplacement', 'Resolved', 'WrittenOff'], caseObj?.status || 'Open')}
+        ${field('Months affected', 'monthsAffected', caseObj?.monthsAffected ?? 1, { type: 'number' })}
+      </div>
+      <div class="grid grid-cols-2 gap-3">
+        ${field('Est. revenue loss (IDR)', 'estRevenueLossIDR', caseObj?.estRevenueLossIDR ?? 0, { type: 'number' })}
+        ${field('Est. recovery (IDR)', 'estRecoveryIDR', caseObj?.estRecoveryIDR ?? 0, { type: 'number' })}
+      </div>
+      <div class="grid grid-cols-2 gap-3">
+        ${selectField('Assignee', 'assignee', [{ value: '', label: '— unassigned —' }, 'Sari Wijaya', 'Dewi Anggraini', ...NRW.TEAMS.map(t => t.name)], caseObj?.assignee || '')}
+        ${field('Due date', 'dueDate', caseObj?.dueDate || '2026-06-15', { type: 'date' })}
+      </div>
+      ${field('Description', 'description', caseObj?.description || '', { rows: 3 })}
+    </form>`,
+    footer: `<button class="btn-secondary" data-modal-close>Cancel</button><button class="btn-primary" data-action="submit">${isEdit ? 'Save changes' : 'Open case'}</button>`,
+    onAction: (action, overlay) => {
+      if (action !== 'submit') return;
+      const data = Object.fromEntries(new FormData(overlay.querySelector('#case-form')).entries());
+      if (!data.customerName || !data.zoneId) { toast('Customer and zone are required', 'error'); return false; }
+      if (isEdit) { State.updateCase(caseObj.id, data); toast(`Case ${caseObj.id} updated`, 'success'); }
+      else { const c = State.createCase(data); toast(`Case ${c.id} opened`, 'success'); }
+      rerender();
+      return true;
+    }
+  });
+}
+
+function openCampaignFormModal(campaign = null) {
+  const isEdit = !!campaign;
+  openModal({
+    title: isEdit ? `Edit campaign · ${campaign.id}` : 'Create recovery campaign',
+    subtitle: isEdit ? 'Update campaign scope' : 'Plan a meter replacement, audit, or sweep',
+    size: 'md',
+    body: `<form id="campaign-form" class="flex flex-col gap-3">
+      ${field('Campaign name', 'name', campaign?.name || '', { required: true, placeholder: 'e.g. Q3 2026 meter replacement' })}
+      <div class="grid grid-cols-3 gap-3">
+        ${selectField('Type', 'type', ['audit', 'meter_age', 'illegal', 'verification'], campaign?.type || 'audit')}
+        ${selectField('Status', 'status', ['planning', 'active', 'completed'], campaign?.status || 'planning')}
+        ${field('Target count', 'targetCount', campaign?.targetCount ?? 50, { type: 'number', required: true })}
+      </div>
+      <div class="grid grid-cols-2 gap-3">
+        ${field('Start date', 'startedAt', campaign?.startedAt || '2026-06-02', { type: 'date' })}
+        ${field('Planned end', 'plannedEnd', campaign?.plannedEnd || '2026-08-31', { type: 'date' })}
+      </div>
+      ${field('Affected zones (comma-separated IDs)', 'zoneIds', (campaign?.zoneIds || []).join(', '), { placeholder: 'DMA-001, DMA-003' })}
+      ${field('Expected recovery (IDR)', 'expectedRecoveryIDR', campaign?.expectedRecoveryIDR ?? 0, { type: 'number' })}
+      ${field('Description', 'description', campaign?.description || '', { rows: 2 })}
+    </form>`,
+    footer: `<button class="btn-secondary" data-modal-close>Cancel</button><button class="btn-primary" data-action="submit">${isEdit ? 'Save changes' : 'Create campaign'}</button>`,
+    onAction: (action, overlay) => {
+      if (action !== 'submit') return;
+      const data = Object.fromEntries(new FormData(overlay.querySelector('#campaign-form')).entries());
+      if (!data.name) { toast('Name is required', 'error'); return false; }
+      if (isEdit) { State.updateCampaign(campaign.id, data); toast(`Campaign updated`, 'success'); }
+      else { State.createCampaign(data); toast(`Campaign created`, 'success'); }
+      rerender();
+      return true;
+    }
+  });
+}
+
 // ============ CRUD MODALS & ACTIONS ============
 function field(label, name, value = '', opts = {}) {
   const { type = 'text', required = false, placeholder = '', rows } = opts;
@@ -2164,6 +2512,7 @@ function openCommandPalette() {
     items.push({ section: 'Navigate', label: 'MNF Analytics', sub: 'Zone comparison', iconName: 'activity', action: () => location.hash = '#/analytics' });
     items.push({ section: 'Navigate', label: 'Schedule', sub: 'Calendar view', iconName: 'calendar-days', kbd: 'gs', action: () => location.hash = '#/schedule' });
     items.push({ section: 'Navigate', label: 'Hardware Live', sub: 'Devices & live telemetry stream', iconName: 'cpu', kbd: 'gh', action: () => location.hash = '#/hardware' });
+    items.push({ section: 'Navigate', label: 'Commercial', sub: 'Cases, campaigns, tariff', iconName: 'banknote', action: () => location.hash = '#/commercial' });
     items.push({ section: 'Navigate', label: 'Reports', sub: 'Analytics & exports', iconName: 'bar-chart-3', kbd: 'gr', action: () => location.hash = '#/reports' });
     items.push({ section: 'Actions', label: 'Create work order', sub: 'New inspection or intervention task', iconName: 'plus', kbd: '⌘N', action: () => openCreateWOModal() });
     items.push({ section: 'Actions', label: 'Print current view', sub: 'Send to printer / save PDF', iconName: 'printer', kbd: '⌘P', action: () => window.print() });

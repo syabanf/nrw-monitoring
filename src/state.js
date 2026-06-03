@@ -1,6 +1,6 @@
 import {
   WORK_ORDERS, ALARMS, INTERVENTIONS, CUSTOMERS, NOTIFICATIONS, ACTIVITY_FEED,
-  ZONES, SENSORS, DEVICES, TEAMS, JAKARTA_CENTER,
+  ZONES, SENSORS, DEVICES, TEAMS, CASES, CAMPAIGNS, JAKARTA_CENTER,
   formatDateTime
 } from './data.js';
 
@@ -469,5 +469,121 @@ export function deleteWorkOrder(id) {
   WORK_ORDERS.splice(i, 1);
   logActivity('wo', id, `Work order ${id} cancelled`, 'x');
   emit('workOrderDeleted', id);
+  return true;
+}
+
+// ============ CRUD: COMMERCIAL CASES ============
+function nextCaseId() {
+  const max = CASES.reduce((m, c) => Math.max(m, parseInt(c.id.slice(-4), 10) || 0), 0);
+  return `CASE-${String(max + 1).padStart(4, '0')}`;
+}
+
+export function createCase(data) {
+  const id = nextCaseId();
+  const c = {
+    id,
+    type: data.type || 'zero_consumption',
+    status: data.status || 'Open',
+    customerId: data.customerId || null,
+    customerName: data.customerName || 'Customer',
+    customerType: data.customerType || 'Residential',
+    zoneId: data.zoneId,
+    zoneName: data.zoneName || (ZONES.find(z => z.id === data.zoneId)?.name || data.zoneId),
+    estRevenueLossIDR: Number(data.estRevenueLossIDR) || 0,
+    estRecoveryIDR: Number(data.estRecoveryIDR) || Math.round((Number(data.estRevenueLossIDR) || 0) * 0.7),
+    monthsAffected: Number(data.monthsAffected) || 1,
+    detectedAt: data.detectedAt || nowTs().slice(0, 10),
+    dueDate: data.dueDate,
+    closedAt: null,
+    assignee: data.assignee || null,
+    priority: data.priority || 'Medium',
+    description: data.description || '',
+    updates: [{ ts: nowTs(), user: 'Budi Santoso', action: 'Created', note: data.description || 'Manual case creation' }]
+  };
+  CASES.unshift(c);
+  logActivity('case', c.id, `Case ${c.id} opened: ${c.customerName}`, 'banknote');
+  pushNotification({ type: 'commercial', title: 'New commercial case', message: `${c.id} · ${c.customerName}`, target: c.id });
+  emit('caseCreated', c);
+  return c;
+}
+
+export function updateCase(id, data) {
+  const c = CASES.find(x => x.id === id);
+  if (!c) return null;
+  const changes = [];
+  ['type', 'status', 'priority', 'assignee', 'dueDate', 'description', 'estRevenueLossIDR', 'estRecoveryIDR', 'monthsAffected'].forEach(k => {
+    if (data[k] !== undefined && data[k] !== c[k]) { changes.push(`${k}: ${c[k]} → ${data[k]}`); c[k] = data[k]; }
+  });
+  if (data.estRevenueLossIDR !== undefined) c.estRevenueLossIDR = Number(data.estRevenueLossIDR);
+  if (data.estRecoveryIDR !== undefined) c.estRecoveryIDR = Number(data.estRecoveryIDR);
+  if (data.monthsAffected !== undefined) c.monthsAffected = Number(data.monthsAffected);
+  if (data.status && ['Resolved', 'WrittenOff'].includes(data.status)) c.closedAt = nowTs();
+  if (changes.length) {
+    c.updates.push({ ts: nowTs(), user: 'Budi Santoso', action: 'Updated', note: changes.join('; ') });
+    emit('caseUpdated', c);
+  }
+  return c;
+}
+
+export function deleteCase(id) {
+  const i = CASES.findIndex(x => x.id === id);
+  if (i < 0) return false;
+  CASES.splice(i, 1);
+  emit('caseDeleted', id);
+  return true;
+}
+
+export function updateCaseStatus(id, status, note = '') {
+  const c = CASES.find(x => x.id === id);
+  if (!c) return null;
+  const prev = c.status;
+  c.status = status;
+  c.updates.push({ ts: nowTs(), user: 'Budi Santoso', action: status.replace(/([A-Z])/g, ' $1').trim(), note: note || `Status changed from ${prev} to ${status}` });
+  if (['Resolved', 'WrittenOff'].includes(status)) c.closedAt = nowTs();
+  emit('caseUpdated', c);
+  return c;
+}
+
+// ============ CRUD: CAMPAIGNS ============
+function nextCampaignId() {
+  const nums = CAMPAIGNS.map(c => parseInt(c.id.slice(-3), 10) || 0);
+  return `CMP-2026-${String(Math.max(...nums, 0) + 1).padStart(3, '0')}`;
+}
+
+export function createCampaign(data) {
+  const c = {
+    id: nextCampaignId(),
+    name: data.name,
+    status: data.status || 'planning',
+    startedAt: data.startedAt || nowTs().slice(0, 10),
+    plannedEnd: data.plannedEnd,
+    targetCount: Number(data.targetCount) || 0,
+    completedCount: 0, scheduledCount: 0,
+    zoneIds: Array.isArray(data.zoneIds) ? data.zoneIds : (data.zoneIds ? data.zoneIds.split(',').map(s => s.trim()) : []),
+    expectedRecoveryIDR: Number(data.expectedRecoveryIDR) || 0,
+    type: data.type || 'audit',
+    description: data.description || ''
+  };
+  CAMPAIGNS.unshift(c);
+  logActivity('campaign', c.id, `Campaign ${c.id} created: ${c.name}`, 'briefcase');
+  emit('campaignCreated', c);
+  return c;
+}
+
+export function updateCampaign(id, data) {
+  const c = CAMPAIGNS.find(x => x.id === id);
+  if (!c) return null;
+  Object.assign(c, data);
+  if (data.targetCount !== undefined) c.targetCount = Number(data.targetCount);
+  if (data.expectedRecoveryIDR !== undefined) c.expectedRecoveryIDR = Number(data.expectedRecoveryIDR);
+  emit('campaignUpdated', c);
+  return c;
+}
+
+export function deleteCampaign(id) {
+  const i = CAMPAIGNS.findIndex(x => x.id === id);
+  if (i < 0) return false;
+  CAMPAIGNS.splice(i, 1);
+  emit('campaignDeleted', id);
   return true;
 }

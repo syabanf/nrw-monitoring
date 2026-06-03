@@ -498,6 +498,103 @@ export function notificationIcon(type) {
   })[type] || 'bell';
 }
 
+// ============ COMMERCIAL CASES ============
+const CASE_TYPES = {
+  zero_consumption: { label: 'Zero consumption', icon: 'circle-alert', priority: 'High' },
+  sudden_drop: { label: 'Sudden consumption drop', icon: 'trending-down', priority: 'Medium' },
+  meter_malfunction: { label: 'Suspected meter malfunction', icon: 'gauge', priority: 'Medium' },
+  illegal_connection: { label: 'Illegal connection suspected', icon: 'triangle-alert', priority: 'Critical' },
+  billing_dispute: { label: 'Billing dispute', icon: 'message-square', priority: 'Medium' },
+  meter_age: { label: 'Meter replacement candidate', icon: 'wrench', priority: 'Low' }
+};
+
+const CASE_STATUSES = ['Open', 'InAudit', 'AwaitingCustomer', 'PendingReplacement', 'Resolved', 'WrittenOff'];
+
+export const CASES = [];
+let caseCounter = 1;
+CUSTOMERS.filter(c => c.anomalies.length).slice(0, 18).forEach(c => {
+  const anom = c.anomalies[0];
+  let type = 'zero_consumption';
+  if (anom.code === 'sudden_drop') type = 'sudden_drop';
+  else if (anom.code === 'unusual_spike') type = 'meter_malfunction';
+  else if (anom.code === 'old_meter') type = 'meter_age';
+  else if (anom.code === 'reading_inconsistent') type = 'billing_dispute';
+  const r = ((caseCounter * 9301 + 49297) % 233280) / 233280;
+  const status = r < 0.45 ? 'Open' : r < 0.65 ? 'InAudit' : r < 0.78 ? 'AwaitingCustomer' : r < 0.88 ? 'PendingReplacement' : r < 0.96 ? 'Resolved' : 'WrittenOff';
+  const monthsAffected = Math.floor(2 + r * 7);
+  const monthlyLoss = c.avgMonthly * (c.type === 'Business' ? 5000 : 5000);
+  const estRevenueLossIDR = Math.round(monthsAffected * monthlyLoss * (type === 'zero_consumption' ? 1 : type === 'sudden_drop' ? 0.5 : 0.3));
+  const created = new Date('2026-06-02');
+  created.setDate(created.getDate() - Math.floor(r * 45));
+  const due = new Date('2026-06-02');
+  due.setDate(due.getDate() + Math.floor(r * 14));
+  CASES.push({
+    id: `CASE-${String(caseCounter).padStart(4, '0')}`,
+    type, status,
+    customerId: c.id, customerName: c.name, customerType: c.type,
+    zoneId: c.zoneId, zoneName: c.zoneName,
+    estRevenueLossIDR,
+    estRecoveryIDR: Math.round(estRevenueLossIDR * 0.7),
+    monthsAffected,
+    detectedAt: created.toISOString().slice(0, 10),
+    dueDate: due.toISOString().slice(0, 10),
+    closedAt: ['Resolved', 'WrittenOff'].includes(status) ? '2026-05-25' : null,
+    assignee: ['Sari Wijaya', 'Dewi Anggraini', 'Field Team Charlie'][caseCounter % 3],
+    priority: CASE_TYPES[type].priority,
+    description: `${CASE_TYPES[type].label} detected for customer ${c.name} (${c.id}) in zone ${c.zoneName}. ${monthsAffected} months affected.`,
+    updates: [
+      { ts: created.toISOString(), user: 'System', action: 'Detected', note: `Auto-flagged by commercial loss analytics — ${anom.label}` },
+      ...(status !== 'Open' ? [{ ts: created.toISOString().replace(/T.*/, 'T10:00:00'), user: 'Sari Wijaya', action: 'Triaged', note: 'Case assigned for audit' }] : []),
+      ...(['Resolved', 'WrittenOff'].includes(status) ? [{ ts: '2026-05-25T15:00:00', user: ['Sari Wijaya', 'Dewi Anggraini'][caseCounter % 2], action: status === 'Resolved' ? 'Resolved' : 'Written off', note: status === 'Resolved' ? `Meter replaced, billing corrected · recovered Rp ${(estRevenueLossIDR / 1e6).toFixed(1)}M` : 'Customer no longer at address, written off as unrecoverable' }] : [])
+    ]
+  });
+  caseCounter++;
+});
+
+CASES.unshift({
+  id: 'CASE-0019',
+  type: 'illegal_connection',
+  status: 'InAudit',
+  customerId: null, customerName: '23 customers — Gambir cluster', customerType: 'Cluster',
+  zoneId: 'DMA-010', zoneName: 'Gambir Heritage',
+  estRevenueLossIDR: 145000000, estRecoveryIDR: 87000000, monthsAffected: 6,
+  detectedAt: '2026-05-25', dueDate: '2026-06-15', closedAt: null,
+  assignee: 'Field Team Charlie', priority: 'Critical',
+  description: 'Cluster of 23 customers in Gambir Heritage with zero consumption for 4+ months. Sub-surface inspection revealed possible illegal tap upstream. Coordinated audit + structural inspection required.',
+  updates: [
+    { ts: '2026-05-25T11:00:00', user: 'System', action: 'Detected', note: 'Cluster flagged by zone-level commercial analytics' },
+    { ts: '2026-05-25T14:30:00', user: 'Sari Wijaya', action: 'Triaged', note: 'Escalated to Critical — likely illegal tap' },
+    { ts: '2026-05-27T10:00:00', user: 'Field Team Charlie', action: 'In Audit', note: 'Started door-to-door, 18/23 customers audited' },
+    { ts: '2026-05-31T16:40:00', user: 'Field Team Charlie', action: 'Field Note', note: '4 broken meters, 2 inactive (verified vacated), 12 normal usage with meter reading error; 5 households still pending visit' }
+  ]
+});
+
+// ============ METER REPLACEMENT CAMPAIGNS ============
+export const CAMPAIGNS = [
+  { id: 'CMP-2026-001', name: 'Q2 2026 — Meter age 15+ replacement', status: 'active', startedAt: '2026-04-01', plannedEnd: '2026-07-31', targetCount: 412, completedCount: 187, scheduledCount: 95, zoneIds: ['DMA-001', 'DMA-003', 'DMA-005', 'DMA-007', 'DMA-009'], expectedRecoveryIDR: 850000000, type: 'meter_age', description: 'Replace all customer meters older than 15 years across high-priority zones.' },
+  { id: 'CMP-2026-002', name: 'Senayan cluster — Mass audit', status: 'active', startedAt: '2026-05-15', plannedEnd: '2026-06-30', targetCount: 87, completedCount: 32, scheduledCount: 20, zoneIds: ['DMA-003'], expectedRecoveryIDR: 245000000, type: 'audit', description: 'Door-to-door audit of zero-consumption + sudden-drop customers in Senayan Residential.' },
+  { id: 'CMP-2026-003', name: 'Gambir illegal connection sweep', status: 'planning', startedAt: '2026-06-10', plannedEnd: '2026-07-31', targetCount: 145, completedCount: 0, scheduledCount: 35, zoneIds: ['DMA-010'], expectedRecoveryIDR: 320000000, type: 'illegal', description: 'Structural inspection + customer audit to identify illegal connections upstream of Gambir DMA inlet.' },
+  { id: 'CMP-2026-000', name: 'Q1 2026 — High-volume customer review', status: 'completed', startedAt: '2026-01-15', plannedEnd: '2026-03-31', targetCount: 64, completedCount: 64, scheduledCount: 0, zoneIds: ['DMA-002', 'DMA-006', 'DMA-008'], expectedRecoveryIDR: 420000000, actualRecoveryIDR: 378000000, type: 'audit', description: 'Audit of all top-quartile commercial customers — completed.' }
+];
+
+// ============ TARIFF STRUCTURE ============
+export const TARIFFS = [
+  { tier: 'Residential R1 · 0-10 m³', rate: 1500, type: 'Residential', description: 'Social tariff for low-income households' },
+  { tier: 'Residential R2 · 11-20 m³', rate: 3500, type: 'Residential', description: 'Standard residential tariff' },
+  { tier: 'Residential R3 · 21+ m³', rate: 5500, type: 'Residential', description: 'Progressive tariff for high usage' },
+  { tier: 'Business B1 · Small', rate: 6500, type: 'Business', description: 'Small commercial connections' },
+  { tier: 'Business B2 · Medium', rate: 8500, type: 'Business', description: 'Medium commercial / hospitality' },
+  { tier: 'Business B3 · Industrial', rate: 11500, type: 'Business', description: 'Industrial and large-volume users' }
+];
+
+export function caseTypeLabel(type) { return CASE_TYPES[type]?.label || type; }
+export function caseTypeIcon(type) { return CASE_TYPES[type]?.icon || 'circle-alert'; }
+export function caseStatusColor(status) {
+  return ({ Open: '#dc2626', InAudit: '#f59e0b', AwaitingCustomer: '#a855f7', PendingReplacement: '#3b82f6', Resolved: '#10b981', WrittenOff: '#64748b' })[status] || '#94a3b8';
+}
+export const getCase = id => CASES.find(c => c.id === id);
+export const getCampaign = id => CAMPAIGNS.find(c => c.id === id);
+
 export function notificationColor(type) {
   return ({
     alarm_critical: '#dc2626',

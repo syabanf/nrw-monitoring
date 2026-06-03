@@ -2,6 +2,15 @@ import { login, quickLogin, USERS } from './auth.js';
 import { renderIcons, icon } from './icons.js';
 import { toast } from './toast.js';
 
+const USER_TIPS = {
+  'budi@pdam.id': 'Approves work orders, validates intervention results, and signs off on recovery KPIs.',
+  'dewi@pdam.id': 'Triages incoming alarms, dispatches teams, and runs the daily operations console.',
+  'sari@pdam.id': 'Investigates commercial loss patterns, builds reports, manages billing audits.',
+  'sutrisno@pdam.id': 'Receives field assignments, uploads inspection photos & GPS, updates WO status from the field.',
+  'rachman@pdam.id': 'Reads executive dashboards, monitors recovery ROI, signs off on quarterly KPIs.',
+  'admin@pdam.id': 'Full system access — manages users, integrations, and master data.'
+};
+
 export function renderLogin(onSuccess) {
   const app = document.getElementById('app');
   app.innerHTML = `
@@ -52,60 +61,75 @@ export function renderLogin(onSuccess) {
       </aside>
 
       <!-- RIGHT: Login form pane -->
-      <main class="flex items-center justify-center p-8 lg:p-12 bg-white">
-        <div class="w-full max-w-sm">
-          <div class="mb-8">
-            <h2 class="text-2xl font-semibold mb-1.5">Welcome back</h2>
+      <main class="flex items-center justify-center p-6 lg:p-10 bg-white overflow-y-auto">
+        <div class="w-full max-w-md">
+          <!-- Demo banner -->
+          <div class="flex items-center gap-2.5 px-3.5 py-2.5 bg-sky-50 border border-sky-200 rounded-lg mb-6">
+            <div class="w-7 h-7 bg-sky-500 rounded-full grid place-items-center text-white shrink-0">${icon('eye', 'w-3.5 h-3.5')}</div>
+            <div class="flex-1 min-w-0">
+              <div class="text-xs font-semibold text-sky-900">Demo environment</div>
+              <div class="text-[11px] text-sky-700">Pick any role below — no real PDAM data is affected.</div>
+            </div>
+          </div>
+
+          <div class="mb-5">
+            <h2 class="text-xl font-semibold mb-1">Welcome back</h2>
             <p class="text-slate-500 text-sm">Sign in to your operations dashboard</p>
           </div>
 
-          <form id="login-form" class="flex flex-col gap-4" autocomplete="on">
-            <div>
-              <label class="text-[11px] text-slate-500 uppercase tracking-wide font-semibold">Email</label>
-              <input type="email" name="email" required autocomplete="email" autofocus class="select-input w-full mt-1.5 py-2.5 text-sm" placeholder="you@pdam.id" />
-            </div>
-            <div>
-              <div class="flex justify-between items-center">
-                <label class="text-[11px] text-slate-500 uppercase tracking-wide font-semibold">Password</label>
-                <a href="#" class="text-[11px] text-sky-500 hover:text-sky-700" id="forgot-link">Forgot password?</a>
-              </div>
-              <div class="relative mt-1.5">
-                <input type="password" name="password" required autocomplete="current-password" class="select-input w-full py-2.5 pr-10 text-sm" placeholder="••••••••" />
-                <button type="button" class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-700" id="toggle-pw" tabindex="-1">${icon('eye', 'w-4 h-4')}</button>
-              </div>
-            </div>
-            <label class="flex items-center gap-2 text-[12px] text-slate-600 cursor-pointer">
-              <input type="checkbox" name="remember" class="accent-sky-500" checked />
-              Keep me signed in
-            </label>
-            <div id="login-error" class="hidden text-[12px] text-red-600 bg-red-50 border border-red-200 rounded-md px-3 py-2 flex items-center gap-2"></div>
-            <button type="submit" class="btn-primary w-full py-2.5 text-sm font-semibold flex items-center justify-center gap-2" id="login-submit">
-              ${icon('check', 'w-4 h-4')}
-              Sign in
-            </button>
-          </form>
-
-          <div class="my-7 flex items-center gap-3">
-            <div class="flex-1 h-px bg-slate-200"></div>
-            <div class="text-[10px] uppercase tracking-widest text-slate-400 font-semibold">Demo accounts</div>
+          <!-- Demo accounts FIRST for fast access -->
+          <div class="flex items-center gap-2 mb-3">
+            <div class="text-[10px] uppercase tracking-widest text-slate-500 font-semibold">Tour as</div>
             <div class="flex-1 h-px bg-slate-200"></div>
           </div>
-
-          <div class="flex flex-col gap-2">
+          <div class="grid grid-cols-1 gap-2 mb-5">
             ${USERS.map(u => `
-              <button class="quick-user flex items-center gap-3 px-3 py-2 border border-slate-200 rounded-lg hover:border-sky-500 hover:bg-sky-50 transition-colors text-left" data-quick="${u.email}">
-                <div class="w-8 h-8 bg-gradient-to-br ${u.avatar} rounded-full grid place-items-center text-white font-semibold text-[11px] shrink-0">${u.initials}</div>
+              <button class="quick-user flex items-center gap-3 px-3 py-2.5 border border-slate-200 rounded-lg hover:border-sky-500 hover:bg-sky-50 transition-colors text-left group" data-quick="${u.email}">
+                <div class="w-9 h-9 bg-gradient-to-br ${u.avatar} rounded-full grid place-items-center text-white font-semibold text-[11px] shrink-0">${u.initials}</div>
                 <div class="flex-1 min-w-0">
-                  <div class="text-xs font-medium truncate">${u.name}</div>
-                  <div class="text-[10px] text-slate-500 truncate">${u.role} · ${u.email}</div>
+                  <div class="flex items-center gap-2"><div class="text-[13px] font-semibold truncate">${u.name}</div><span class="text-[9px] uppercase tracking-wide px-1.5 py-0.5 bg-slate-100 text-slate-600 rounded">${u.role}</span></div>
+                  <div class="text-[10.5px] text-slate-500 truncate mt-0.5">${USER_TIPS[u.email] || u.email}</div>
                 </div>
-                ${icon('arrow-right', 'w-3.5 h-3.5 text-slate-400')}
+                ${icon('arrow-right', 'w-3.5 h-3.5 text-slate-400 group-hover:text-sky-500 group-hover:translate-x-0.5 transition-all')}
               </button>
             `).join('')}
           </div>
 
-          <div class="mt-8 text-center text-[11px] text-slate-400">
-            Password for all demo accounts: <code class="px-1.5 py-0.5 bg-slate-100 rounded text-slate-700">demo123</code>
+          <!-- Manual sign-in -->
+          <div class="flex items-center gap-2 mb-3">
+            <div class="text-[10px] uppercase tracking-widest text-slate-500 font-semibold">Or sign in manually</div>
+            <div class="flex-1 h-px bg-slate-200"></div>
+          </div>
+          <form id="login-form" class="flex flex-col gap-3" autocomplete="on">
+            <div class="grid grid-cols-2 gap-3">
+              <div>
+                <label class="text-[10px] text-slate-500 uppercase tracking-wide font-semibold">Email</label>
+                <input type="email" name="email" required autocomplete="email" class="select-input w-full mt-1 py-2 text-sm" placeholder="you@pdam.id" />
+              </div>
+              <div>
+                <label class="text-[10px] text-slate-500 uppercase tracking-wide font-semibold">Password</label>
+                <div class="relative mt-1">
+                  <input type="password" name="password" required autocomplete="current-password" class="select-input w-full py-2 pr-9 text-sm" placeholder="demo123" />
+                  <button type="button" class="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-700" id="toggle-pw" tabindex="-1">${icon('eye', 'w-3.5 h-3.5')}</button>
+                </div>
+              </div>
+            </div>
+            <div class="flex justify-between items-center">
+              <label class="flex items-center gap-2 text-[11px] text-slate-600 cursor-pointer">
+                <input type="checkbox" name="remember" class="accent-sky-500" checked />
+                Keep me signed in
+              </label>
+              <a href="#" class="text-[11px] text-sky-500 hover:text-sky-700" id="forgot-link">Forgot password?</a>
+            </div>
+            <div id="login-error" class="hidden text-[12px] text-red-600 bg-red-50 border border-red-200 rounded-md px-3 py-2 flex items-center gap-2"></div>
+            <button type="submit" class="btn-primary w-full py-2 text-sm font-semibold flex items-center justify-center gap-2" id="login-submit">
+              ${icon('log-in', 'w-4 h-4')}
+              Sign in
+            </button>
+          </form>
+
+          <div class="mt-6 text-center text-[11px] text-slate-400">
+            Password for all demo accounts: <code class="px-1.5 py-0.5 bg-slate-100 rounded text-slate-700 font-mono">demo123</code>
           </div>
         </div>
       </main>
