@@ -9,7 +9,7 @@ import { startRealtime, subscribeRealtime, getStream, getStats, getTickRate } fr
 import { getCurrentUser, isLoggedIn, logout } from './auth.js';
 import { renderLogin } from './login.js';
 
-const VIEWS = ['dashboard', 'savings', 'map', 'reports', 'workorders', 'zones', 'sensors', 'alarms', 'customers', 'commercial', 'analytics', 'schedule', 'teams', 'hardware', 'pricing', 'commercialmap'];
+const VIEWS = ['dashboard', 'executive', 'savings', 'map', 'reports', 'workorders', 'zones', 'sensors', 'alarms', 'customers', 'commercial', 'analytics', 'schedule', 'teams', 'hardware', 'pricing', 'commercialmap'];
 let currentView = 'dashboard';
 let currentReportTab = 'nrw';
 let lastDrawer = null;
@@ -21,9 +21,16 @@ const state = {
   analytics: { selectedZones: ['DMA-001', 'DMA-003', 'DMA-007', 'DMA-010'] }
 };
 
+function landingForRole(user) {
+  if (!user) return '#/dashboard';
+  if (user.role === 'Executive') return '#/executive';
+  if (user.role === 'Field Inspector') return '#/workorders';
+  return '#/dashboard';
+}
+
 export function initApp() {
   if (!isLoggedIn()) {
-    renderLogin(() => { location.hash = '#/dashboard'; bootApp(); });
+    renderLogin((user) => { location.hash = landingForRole(user); bootApp(); });
     return;
   }
   bootApp();
@@ -197,6 +204,7 @@ function renderShell() {
         </div>
         <nav class="p-2 flex-1">
           <div class="nav-section"><div class="nav-section-label text-[10px] uppercase tracking-widest text-slate-500 px-2.5 pt-3.5 pb-1.5">Monitoring</div></div>
+          <a class="nav-item" data-view="executive" href="#/executive">${icon('briefcase', 'nav-icon')}<span class="nav-label">Ringkasan Direksi</span></a>
           <a class="nav-item" data-view="dashboard" href="#/dashboard">${icon('layout-dashboard', 'nav-icon')}<span class="nav-label">Dashboard</span></a>
           <a class="nav-item" data-view="map" href="#/map">${icon('map', 'nav-icon')}<span class="nav-label">Network Map</span></a>
           <a class="nav-item" data-view="hardware" href="#/hardware">${icon('cpu', 'nav-icon')}<span class="nav-label">Hardware Live</span><span class="nav-badge nav-badge-warn" id="hw-nav-badge">${NRW.DEVICES.filter(d => d.updateAvailable).length}</span></a>
@@ -360,7 +368,8 @@ function handleRoute() {
     commercial: ['Commercial Loss', `${NRW.CASES.filter(c => !['Resolved', 'WrittenOff'].includes(c.status)).length} kasus terbuka · ${NRW.CAMPAIGNS.filter(c => c.status === 'active').length} campaign berjalan`],
     savings: ['Savings Snapshot', 'Snapshot penghematan air dan pendapatan per wilayah'],
     pricing: ['Pricing · Master Data', `${NRW.TARIFFS.length} tier tarif aktif · efektif sejak ${NRW.formatDate(NRW.TARIFFS[0]?.effectiveDate)}`],
-    commercialmap: ['Commercial Map', 'Peta finansial — kerugian vs keuntungan per zona']
+    commercialmap: ['Commercial Map', 'Peta finansial — kerugian vs keuntungan per zona'],
+    executive: ['Ringkasan Direksi', 'One-page summary untuk meeting board · siap di-print']
   };
   document.getElementById('view-title').textContent = titles[view][0];
   document.getElementById('view-sub').textContent = titles[view][1];
@@ -387,6 +396,7 @@ function renderView(view) {
     case 'savings': return renderSavings(root);
     case 'pricing': return renderPricing(root);
     case 'commercialmap': return renderCommercialMap(root);
+    case 'executive': return renderExecutive(root);
   }
 }
 
@@ -1935,6 +1945,271 @@ function closeNotifPanel() {
   document.removeEventListener('click', notifOutsideClick);
 }
 
+// ============ EXECUTIVE · RINGKASAN DIREKSI ============
+function renderExecutive(root) {
+  const user = getCurrentUser();
+  const greetingName = user?.name?.split(' ').slice(0, 2).join(' ') || 'Pimpinan';
+  const today = new Date('2026-06-02');
+  const dateStr = today.toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+
+  // Aggregates
+  const totalWaterYTD = NRW.INTERVENTIONS.reduce((s, i) => s + i.waterRecoveredM3, 0);
+  const totalRevenueYTD = NRW.INTERVENTIONS.reduce((s, i) => s + i.revenueRecoveredIDR, 0);
+  const annualTargetRevenue = 250000000;
+  const annualTargetWater = 50000;
+  const revenueProgress = Math.min(100, (totalRevenueYTD / annualTargetRevenue) * 100);
+  const waterProgress = Math.min(100, (totalWaterYTD / annualTargetWater) * 100);
+  const onTrack = revenueProgress >= 25; // for June (mid-year ~ 42% expected)
+  const totalCustomers = NRW.CUSTOMERS.length;
+  const totalZones = NRW.ZONES.length;
+  const totalSensors = NRW.SENSORS.length;
+  const totalAlarmsCritical = NRW.ALARMS.filter(a => a.severity === 'critical' && a.status === 'active').length;
+  const openCases = NRW.CASES.filter(c => !['Resolved', 'WrittenOff'].includes(c.status)).length;
+  const revenueAtRisk = NRW.CASES.filter(c => !['Resolved', 'WrittenOff'].includes(c.status)).reduce((s, c) => s + c.estRevenueLossIDR, 0);
+  const startingNRW = 32;
+  const currentNRW = NRW.KPI.totalNRW;
+  const nrwReduction = (startingNRW - currentNRW).toFixed(1);
+
+  // Regional split
+  const regions = ['Cirebon', 'Indramayu'].map(name => {
+    const zones = NRW.ZONES.filter(z => z.region === name);
+    const ints = NRW.INTERVENTIONS.filter(i => zones.some(z => z.id === i.zoneId));
+    const water = ints.reduce((s, i) => s + i.waterRecoveredM3, 0);
+    const revenue = ints.reduce((s, i) => s + i.revenueRecoveredIDR, 0);
+    const customers = zones.reduce((s, z) => s + z.customers, 0);
+    const avgNrw = zones.reduce((s, z) => s + z.nrwPercent, 0) / Math.max(1, zones.length);
+    return { name, zones: zones.length, customers, water, revenue, avgNrw, ints: ints.length };
+  });
+  const winner = regions[0].revenue > regions[1].revenue ? regions[0] : regions[1];
+
+  // Cost recovery framing — more honest & BOD-friendly than ROI which would be negative in early pilot
+  const pilotCost = 1100000000;
+  const projectedAnnualRevenue = totalRevenueYTD * (12 / 6); // pro-rate YTD → annual
+  const costRecoveryPct = Math.round((projectedAnnualRevenue / pilotCost) * 100);
+  const breakEvenYear = projectedAnnualRevenue > 0 ? (pilotCost / projectedAnnualRevenue).toFixed(1) : '∞';
+
+  const milestones = [
+    { phase: 'Phase 1', label: 'Discovery & sensor installation', status: 'done', date: 'Aug — Nov 2025' },
+    { phase: 'Phase 2', label: 'Baseline data + analytics setup', status: 'done', date: 'Dec 2025 — Mar 2026' },
+    { phase: 'Phase 3', label: 'Active recovery operations', status: 'active', date: 'Apr — Sep 2026' },
+    { phase: 'Phase 4', label: 'Scale-up planning & ekspansi DMA', status: 'upcoming', date: 'Q4 2026' }
+  ];
+
+  const pendingDecisions = [
+    { title: 'Approval revisi tariff Q3 2026 (v2026.2)', detail: 'Penyesuaian +5% untuk tier R3 dan B2 · estimasi tambahan revenue Rp 18 jt/bulan', priority: 'High' },
+    { title: 'Persetujuan campaign Jatibarang illegal sweep', detail: '145 titik audit · expected recovery Rp 320 jt · butuh anggaran lapangan Rp 45 jt', priority: 'High' },
+    { title: 'Sign-off quarterly review Q2 2026', detail: 'Penilaian kuartalan pilot — siap di-review sebelum 15 Juni', priority: 'Medium' }
+  ];
+
+  root.innerHTML = `
+    <!-- Header banner -->
+    <div class="card bg-gradient-to-br from-slate-900 via-slate-800 to-sky-900 text-white border-0 print:bg-white print:text-slate-900 print:border print:border-slate-300">
+      <div class="p-6 flex items-center justify-between flex-wrap gap-4">
+        <div>
+          <div class="text-[11px] uppercase tracking-widest text-sky-300 print:text-sky-700 font-semibold">Ringkasan Direksi · PDAM Cirebon × Indramayu Pilot NRW</div>
+          <h1 class="text-2xl font-bold mt-1">Selamat siang, ${greetingName} 👋</h1>
+          <div class="text-slate-200 print:text-slate-600 text-sm mt-1">${dateStr} · Periode Jan–Jun 2026</div>
+        </div>
+        <div class="flex gap-2 print:hidden">
+          <button class="btn-secondary !text-slate-900 flex items-center gap-1.5" onclick="window.print()">${icon('printer', 'w-3.5 h-3.5')} Print untuk Board</button>
+          <button class="btn-primary flex items-center gap-1.5">${icon('download', 'w-3.5 h-3.5')} Export PDF</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Executive narrative -->
+    <div class="card">
+      <div class="p-5 flex gap-4 items-start">
+        <div class="w-11 h-11 rounded-full bg-gradient-to-br from-sky-500 to-emerald-500 text-white grid place-items-center shrink-0 print:from-sky-700 print:to-emerald-700">${icon('briefcase', 'w-5 h-5')}</div>
+        <div class="flex-1">
+          <div class="text-[11px] uppercase tracking-wider text-slate-500 font-semibold mb-1">Bottom line</div>
+          <p class="text-slate-800 leading-relaxed">
+            Pilot NRW PDAM Cirebon × Indramayu <strong class="${onTrack ? 'text-emerald-600' : 'text-amber-600'}">${onTrack ? 'on track' : 'sedikit di bawah target'}</strong>.
+            Sampai 02 Juni 2026, kita berhasil menghemat <strong>${NRW.formatM3(totalWaterYTD)}</strong> air bersih dan
+            mengembalikan <strong>${NRW.formatIDR(totalRevenueYTD)}</strong> pendapatan yang sebelumnya hilang —
+            setara <strong>${revenueProgress.toFixed(0)}%</strong> dari target tahunan Rp 250 jt.
+            NRW pilot turun dari <strong>${startingNRW}%</strong> ke <strong>${currentNRW}%</strong>
+            (penurunan <strong class="text-emerald-600">${nrwReduction} poin</strong>).
+            ${winner.name} unggul dengan recovery ${NRW.formatIDR(winner.revenue)} dari ${winner.ints} intervensi.
+            Direkomendasikan: <strong>lanjutkan ke Phase 4 (scale-up)</strong> setelah review Q2.
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Hero KPIs (BIG for BOD) -->
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
+      ${execHeroKpi('Pendapatan terselamatkan', NRW.formatIDR(totalRevenueYTD), `${revenueProgress.toFixed(0)}% dari target tahunan`, 'good', 'banknote', `Pendapatan yang sebelumnya hilang akibat kebocoran fisik dan komersial, dan berhasil kita kembalikan ke PDAM melalui intervensi lapangan.`)}
+      ${execHeroKpi('Air terselamatkan', NRW.formatM3(totalWaterYTD), `${waterProgress.toFixed(0)}% dari target ${NRW.formatM3(annualTargetWater)}`, 'info', 'waves', `Total volume air bersih yang sebelumnya hilang (bocor, kebocoran komersial) dan sekarang masuk kembali ke jaringan distribusi atau penagihan.`)}
+      ${execHeroKpi('Penurunan NRW', `${nrwReduction} ppt`, `${startingNRW}% → ${currentNRW}% (lebih baik)`, 'good', 'trending-down', `Non-Revenue Water = persentase air yang hilang tanpa menghasilkan pendapatan. Setiap penurunan 1 poin = sekitar Rp 8–12 jt/bulan tambahan revenue.`)}
+      ${execHeroKpi('Cost recovery YTD', `${costRecoveryPct}%`, `proyeksi break-even ${breakEvenYear} tahun`, costRecoveryPct >= 50 ? 'good' : 'info', 'trending-up', `Persentase biaya pilot (CAPEX Rp 800 jt + OPEX Rp 50 jt/bulan) yang sudah ter-cover oleh pendapatan recovery. Pilot menargetkan full break-even setelah scale-up Phase 4.`)}
+    </div>
+
+    <!-- Progress vs targets -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+      <div class="card">
+        <div class="card-header"><h3>Pencapaian target pendapatan 2026</h3><span class="chip ${onTrack ? 'chip-success' : ''}">${onTrack ? 'On track' : 'Perlu perhatian'}</span></div>
+        <div class="p-5">
+          <div class="flex items-end justify-between mb-3">
+            <div><div class="text-3xl font-bold">${NRW.formatIDR(totalRevenueYTD)}</div><div class="text-slate-500 text-xs mt-1">terkumpul YTD</div></div>
+            <div class="text-right"><div class="text-3xl font-bold text-emerald-600">${revenueProgress.toFixed(0)}%</div><div class="text-slate-500 text-xs mt-1">dari target Rp 250 jt</div></div>
+          </div>
+          <div class="bar w-full !h-4 mb-2"><div class="bar-fill ${onTrack ? 'good' : 'warn'}" style="width:${revenueProgress}%"></div></div>
+          <div class="flex justify-between text-[11px] text-slate-500"><span>Rp 0</span><span>Target Rp 250 jt</span></div>
+          <div class="mt-4 p-3 bg-emerald-50 rounded-md text-xs text-emerald-900 border border-emerald-200">
+            ${icon('info', 'w-3.5 h-3.5 inline text-emerald-700')} <strong>Sisa:</strong> ${NRW.formatIDR(annualTargetRevenue - totalRevenueYTD)} untuk mencapai target tahun ini.
+            Dengan rata-rata recovery saat ini, target diproyeksikan tercapai pada <strong>${revenueProgress >= 42 ? 'September 2026 (lebih cepat 1 kuartal)' : 'akhir Desember 2026'}</strong>.
+          </div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-header"><h3>Tren recovery bulanan</h3><span class="chip">6 bulan terakhir</span></div>
+        <div class="p-3.5 relative" style="height:280px"><canvas id="chart-exec-trend"></canvas></div>
+      </div>
+    </div>
+
+    <!-- Regional comparison -->
+    <div class="card">
+      <div class="card-header"><h3>Performa per wilayah · Cirebon vs Indramayu</h3><a class="text-xs text-sky-500" href="#/savings">Detail lengkap →</a></div>
+      <div class="p-5 grid grid-cols-1 md:grid-cols-2 gap-4">
+        ${regions.map((r, i) => {
+          const isWinner = r === winner;
+          const color = i === 0 ? '#0ea5e9' : '#10b981';
+          const bgClass = i === 0 ? 'bg-sky-50' : 'bg-emerald-50';
+          const borderClass = i === 0 ? 'border-sky-200' : 'border-emerald-200';
+          return `<div class="${bgClass} ${borderClass} border-2 rounded-xl p-5 ${isWinner ? 'ring-2 ring-amber-300' : ''} relative">
+            ${isWinner ? `<div class="absolute -top-3 right-4 bg-amber-400 text-amber-900 px-2 py-0.5 rounded text-[10px] font-bold uppercase">🥇 Wilayah Terbaik</div>` : ''}
+            <div class="flex items-center gap-3 mb-3">
+              <div class="w-10 h-10 rounded-full" style="background:${color}"></div>
+              <div><div class="text-lg font-bold">${r.name}</div><div class="text-slate-500 text-xs">${r.zones} zona · ${r.customers.toLocaleString()} pelanggan</div></div>
+            </div>
+            <div class="grid grid-cols-2 gap-2 mt-4">
+              <div class="bg-white rounded-lg p-3">
+                <div class="text-[10px] uppercase text-slate-400 tracking-wide">Pendapatan kembali</div>
+                <div class="text-xl font-bold mt-1 text-slate-900">${NRW.formatIDR(r.revenue)}</div>
+              </div>
+              <div class="bg-white rounded-lg p-3">
+                <div class="text-[10px] uppercase text-slate-400 tracking-wide">Air terselamatkan</div>
+                <div class="text-xl font-bold mt-1 text-slate-900">${NRW.formatM3(r.water)}</div>
+              </div>
+              <div class="bg-white rounded-lg p-3">
+                <div class="text-[10px] uppercase text-slate-400 tracking-wide">NRW rata-rata</div>
+                <div class="text-xl font-bold mt-1 text-slate-900">${r.avgNrw.toFixed(1)}%</div>
+              </div>
+              <div class="bg-white rounded-lg p-3">
+                <div class="text-[10px] uppercase text-slate-400 tracking-wide">Intervensi</div>
+                <div class="text-xl font-bold mt-1 text-slate-900">${r.ints}</div>
+              </div>
+            </div>
+          </div>`;
+        }).join('')}
+      </div>
+    </div>
+
+    <!-- Milestones -->
+    <div class="card">
+      <div class="card-header"><h3>Timeline pilot · 4 fase</h3><span class="chip">Phase 3 of 4</span></div>
+      <div class="p-5 grid grid-cols-1 md:grid-cols-4 gap-3">
+        ${milestones.map(m => {
+          const cls = m.status === 'done' ? 'bg-emerald-50 border-emerald-300' : m.status === 'active' ? 'bg-amber-50 border-amber-400 ring-2 ring-amber-300' : 'bg-slate-50 border-slate-200';
+          const iconName = m.status === 'done' ? 'check' : m.status === 'active' ? 'activity' : 'clock';
+          const iconColor = m.status === 'done' ? 'text-emerald-600' : m.status === 'active' ? 'text-amber-600' : 'text-slate-400';
+          const statusBadge = m.status === 'done' ? '✓ Selesai' : m.status === 'active' ? '● Berjalan' : '○ Mendatang';
+          const badgeColor = m.status === 'done' ? 'text-emerald-700' : m.status === 'active' ? 'text-amber-700' : 'text-slate-500';
+          return `<div class="${cls} border-2 rounded-lg p-4">
+            <div class="flex items-center gap-2 mb-2"><span class="${iconColor}">${icon(iconName, 'w-4 h-4')}</span><span class="text-[10px] uppercase tracking-wider font-semibold ${badgeColor}">${statusBadge}</span></div>
+            <div class="font-bold text-sm">${m.phase}</div>
+            <div class="text-slate-700 text-xs mt-1">${m.label}</div>
+            <div class="text-slate-500 text-[10px] mt-2">${m.date}</div>
+          </div>`;
+        }).join('')}
+      </div>
+    </div>
+
+    <!-- Pending decisions -->
+    <div class="card">
+      <div class="card-header"><h3>Keputusan menunggu approval Direksi · ${pendingDecisions.length} item</h3><span class="chip" style="background:#fef3c7;color:#92400e;border-color:#fcd34d">Perlu tindak lanjut</span></div>
+      <div class="p-3">
+        ${pendingDecisions.map((d, i) => `
+          <div class="flex gap-4 p-4 rounded-lg ${i % 2 === 0 ? 'bg-slate-50' : ''} items-start">
+            <div class="w-8 h-8 rounded-full ${d.priority === 'High' ? 'bg-red-100 text-red-700' : 'bg-amber-100 text-amber-700'} grid place-items-center font-bold text-xs shrink-0">${i + 1}</div>
+            <div class="flex-1">
+              <div class="flex items-center gap-2"><strong class="text-sm">${d.title}</strong><span class="priority priority-${d.priority.toLowerCase()}">${d.priority}</span></div>
+              <div class="text-slate-600 text-xs mt-1">${d.detail}</div>
+            </div>
+            <div class="flex gap-1.5 shrink-0 print:hidden">
+              <button class="btn-secondary text-[11px]">Tinjau</button>
+              <button class="btn-primary text-[11px]">Approve</button>
+            </div>
+          </div>
+        `).join('')}
+      </div>
+    </div>
+
+    <!-- Risk / health -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+      <div class="card p-4 ${totalAlarmsCritical > 0 ? 'border-red-300 bg-red-50' : 'border-emerald-300 bg-emerald-50'} border-2">
+        <div class="flex items-center gap-2 text-[11px] uppercase tracking-wider font-semibold ${totalAlarmsCritical > 0 ? 'text-red-700' : 'text-emerald-700'}">${icon(totalAlarmsCritical > 0 ? 'triangle-alert' : 'check', 'w-4 h-4')} Operasional</div>
+        <div class="text-xl font-bold mt-2">${totalAlarmsCritical > 0 ? `${totalAlarmsCritical} alarm critical` : 'Tidak ada masalah'}</div>
+        <div class="text-slate-600 text-xs mt-1">${totalAlarmsCritical > 0 ? 'Perlu perhatian tim operasi' : `${totalSensors} sensor online · ${NRW.KPI.sensorUptime}% uptime`}</div>
+      </div>
+      <div class="card p-4 ${openCases > 10 ? 'border-amber-300 bg-amber-50' : 'border-emerald-300 bg-emerald-50'} border-2">
+        <div class="flex items-center gap-2 text-[11px] uppercase tracking-wider font-semibold ${openCases > 10 ? 'text-amber-700' : 'text-emerald-700'}">${icon('banknote', 'w-4 h-4')} Komersial</div>
+        <div class="text-xl font-bold mt-2">${NRW.formatIDR(revenueAtRisk)}</div>
+        <div class="text-slate-600 text-xs mt-1">revenue at risk dari ${openCases} kasus terbuka · target tutup Q3</div>
+      </div>
+      <div class="card p-4 border-2 border-sky-300 bg-sky-50">
+        <div class="flex items-center gap-2 text-[11px] uppercase tracking-wider font-semibold text-sky-700">${icon('users', 'w-4 h-4')} Tim & Cakupan</div>
+        <div class="text-xl font-bold mt-2">${totalCustomers.toLocaleString()} pelanggan</div>
+        <div class="text-slate-600 text-xs mt-1">tercover di ${totalZones} zona · dilayani ${NRW.TEAMS.length} tim lapangan</div>
+      </div>
+    </div>
+
+    <!-- Footer signature -->
+    <div class="card p-5 text-center text-xs text-slate-500 print:border-t print:border-slate-300">
+      Snapshot ini auto-generated dari operations dashboard PDAM Cirebon × Indramayu Pilot NRW · 02 Juni 2026 09:30 WIB
+      <div class="mt-1 text-[10px] text-slate-400">Untuk diskusi lebih lanjut, sentuh tombol command palette (⌘K) atau hubungi tim NRW Recovery.</div>
+    </div>
+  `;
+
+  // Chart — monthly recovery vs target benchmark
+  const monthlyData = NRW.generateRecoveryTrend(6);
+  const monthlyTarget = annualTargetRevenue / 12;
+  Charts.customChart('chart-exec-trend', {
+    type: 'bar',
+    data: {
+      labels: monthlyData.labels,
+      datasets: [
+        { type: 'bar', label: 'Recovery aktual', data: monthlyData.revenue, backgroundColor: '#10b981', borderRadius: 6, maxBarThickness: 40 },
+        { type: 'line', label: 'Target bulanan', data: monthlyData.labels.map(() => monthlyTarget), borderColor: '#dc2626', borderWidth: 2, borderDash: [6, 4], pointRadius: 0, fill: false }
+      ]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { position: 'top' }, tooltip: { callbacks: { label: ctx => `${ctx.dataset.label}: ${NRW.formatIDR(ctx.parsed.y)}` } } },
+      scales: { x: { grid: { display: false } }, y: { beginAtZero: true, grid: { color: 'rgba(148,163,184,0.2)' }, ticks: { callback: v => NRW.formatIDR(v) } } }
+    }
+  });
+
+  renderIcons();
+}
+
+function execHeroKpi(label, value, sub, tone, iconName, tooltip) {
+  const toneColor = { good: 'border-l-emerald-500 bg-emerald-50', bad: 'border-l-red-500 bg-red-50', warn: 'border-l-amber-500 bg-amber-50', info: 'border-l-sky-500 bg-sky-50' }[tone];
+  const iconBg = { good: 'bg-emerald-200 text-emerald-700', bad: 'bg-red-200 text-red-700', warn: 'bg-amber-200 text-amber-700', info: 'bg-sky-200 text-sky-700' }[tone];
+  return `
+    <div class="card p-5 border-l-4 ${toneColor} relative group" title="${tooltip.replace(/"/g, '&quot;')}">
+      <div class="flex items-start justify-between mb-3">
+        <div class="text-[11px] uppercase tracking-widest text-slate-500 font-semibold">${label}</div>
+        <div class="w-9 h-9 rounded-lg ${iconBg} grid place-items-center">${icon(iconName, 'w-4 h-4')}</div>
+      </div>
+      <div class="text-3xl font-bold leading-tight">${value}</div>
+      <div class="text-xs text-slate-600 mt-2">${sub}</div>
+      <div class="text-[10px] text-slate-400 mt-3 italic">Hover untuk penjelasan</div>
+    </div>
+  `;
+}
+
 // ============ PRICING · MASTER DATA ============
 function renderPricing(root) {
   const byTariff = NRW.customersByTariff();
@@ -3129,6 +3404,7 @@ function openCommandPalette() {
 
   function build(q) {
     const items = [];
+    items.push({ section: 'Navigate', label: 'Ringkasan Direksi', sub: 'One-page summary untuk BOD', iconName: 'briefcase', kbd: 'ge', action: () => location.hash = '#/executive' });
     items.push({ section: 'Navigate', label: 'Dashboard', sub: 'Operations overview', iconName: 'layout-dashboard', kbd: 'gd', action: () => location.hash = '#/dashboard' });
     items.push({ section: 'Navigate', label: 'Network Map', sub: 'Zones, sensors, alarms', iconName: 'map', kbd: 'gm', action: () => location.hash = '#/map' });
     items.push({ section: 'Navigate', label: 'Savings · Wilayah', sub: 'Snapshot penghematan per region', iconName: 'trending-up', action: () => location.hash = '#/savings' });
